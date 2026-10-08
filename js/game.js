@@ -1324,11 +1324,15 @@
     function frame(ts) {
         raf = requestAnimationFrame(frame);
         if (!last) last = ts;
-        acc += Math.min(250, ts - last); last = ts;
+        var dtMs = ts - last;
+        acc += Math.min(250, dtMs); last = ts;
         while (acc >= STEP) { update(); acc -= STEP; }
+        // dynamic resolution: if frames stay slow for ~3 s, render the 3D view smaller
+        if (W3 && glScale > 0.6) { if (dtMs > 24 && dtMs < 250) slowFrames++; else if (slowFrames > 0) slowFrames--; if (slowFrames > 150) { glScale -= 0.15; slowFrames = 0; resize(); } }
         draw();
         audioTick();
     }
+    var glScale = 1, slowFrames = 0;
     function startLoop() { if (!raf) { last = 0; acc = 0; raf = requestAnimationFrame(frame); } }
     function stopLoop() { if (raf) cancelAnimationFrame(raf); raf = 0; }
 
@@ -1343,7 +1347,7 @@
         canvas.style.width = cssW; canvas.style.height = cssH;
         var st = document.getElementById('stage'); st.style.width = cssW; st.style.height = cssH;
         if (W3) {
-            var gcap = tier === 'low' ? 960 : tier === 'mid' ? 1280 : 1600, gw = Math.min(gcap, Math.round(W * s));
+            var gcap = tier === 'low' ? 960 : tier === 'mid' ? 1280 : 1600, gw = Math.round(Math.min(gcap, W * s) * glScale);
             W3.resize(gw, Math.round(gw * H / W));
             glCanvas.style.width = cssW; glCanvas.style.height = cssH;
         }
