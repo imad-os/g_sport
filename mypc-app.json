@@ -5,8 +5,8 @@
   "description": "HIIT lane runner: dodge, jump, squat and kick with a voice coach. Calories for your profile.",
   "type": "game",
   "entry": "index.html",
-  "icon": "icon.svg?v=2.0.0",
-  "version": "2.0.0",
+  "icon": "icon.svg?v=2.1.0",
+  "version": "2.1.0",
   "scores": true,
   "config": {
     "speed": 1,

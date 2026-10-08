@@ -1,6 +1,7 @@
 /* Motion Trail: interface texts (en, fr, es, ar). Numbers stay left to right. */
 var MT_TXT = {
     en: {
+        custom: 'CUSTOM', customTitle: 'CUSTOM WORKOUT', preset: 'PRESET', own: 'YOUR OWN', sec: 's', workTime: 'WORK TIME', restTime: 'RECOVERY', moves: 'MOVES', terrain: 'TERRAIN', total: 'TOTAL', hintCustom: [['lr', 'CHANGE'], ['ud', 'MOVE'], ['ok', 'TOGGLE / START']],
         t1: 'MOTION', t2: 'TRAIL', tag: 'HIIT RUNNER  ·  TRAIN WITH YOUR WHOLE BODY',
         play: 'START', stages: 'STAGES', profile: 'PROFILE', settings: 'SETTINGS',
         workouts: 'WORKOUTS', kcalTotal: 'KCAL BURNED', bestScore: 'BEST SCORE',
@@ -31,6 +32,7 @@ var MT_TXT = {
         paused: 'PAUSED', restart: 'Restart stage', quit: 'Quit to menu', loading: 'LOADING'
     },
     fr: {
+        custom: 'PERSONNALISÉ', customTitle: 'SÉANCE PERSONNALISÉE', preset: 'PRÉRÉGLAGE', own: 'LIBRE', sec: 's', workTime: 'EFFORT', restTime: 'RÉCUPÉRATION', moves: 'MOUVEMENTS', terrain: 'DÉCOR', total: 'TOTAL', hintCustom: [['lr', 'MODIFIER'], ['ud', 'DÉPLACER'], ['ok', 'COCHER / LANCER']],
         t1: 'MOTION', t2: 'TRAIL', tag: 'COURSE HIIT  ·  ENTRAÎNEZ TOUT LE CORPS',
         play: 'JOUER', stages: 'ÉTAPES', profile: 'PROFIL', settings: 'RÉGLAGES',
         workouts: 'SÉANCES', kcalTotal: 'KCAL BRÛLÉES', bestScore: 'MEILLEUR SCORE',
@@ -61,6 +63,7 @@ var MT_TXT = {
         paused: 'PAUSE', restart: 'Recommencer l\'étape', quit: 'Retour au menu', loading: 'CHARGEMENT'
     },
     es: {
+        custom: 'PERSONALIZADO', customTitle: 'ENTRENO A MEDIDA', preset: 'PLANTILLA', own: 'LIBRE', sec: 's', workTime: 'ESFUERZO', restTime: 'RECUPERACIÓN', moves: 'MOVIMIENTOS', terrain: 'ESCENARIO', total: 'TOTAL', hintCustom: [['lr', 'CAMBIAR'], ['ud', 'MOVER'], ['ok', 'MARCAR / EMPEZAR']],
         t1: 'MOTION', t2: 'TRAIL', tag: 'CARRERA HIIT  ·  ENTRENA TODO EL CUERPO',
         play: 'EMPEZAR', stages: 'ETAPAS', profile: 'PERFIL', settings: 'AJUSTES',
         workouts: 'SESIONES', kcalTotal: 'KCAL QUEMADAS', bestScore: 'MEJOR PUNTUACIÓN',
@@ -91,6 +94,7 @@ var MT_TXT = {
         paused: 'PAUSA', restart: 'Reiniciar etapa', quit: 'Volver al menú', loading: 'CARGANDO'
     },
     ar: {
+        custom: 'تمرين مخصص', customTitle: 'تمرين مخصص', preset: 'قالب', own: 'حر', sec: 'ث', workTime: 'مدة الجهد', restTime: 'الاستشفاء', moves: 'الحركات', terrain: 'المكان', total: 'المجموع', hintCustom: [['lr', 'غيّر'], ['ud', 'تنقّل'], ['ok', 'اختر / ابدأ']],
         t1: 'مسار', t2: 'الحركة', tag: 'جري بنظام HIIT  ·  درّب جسمك كله',
         play: 'ابدأ', stages: 'المراحل', profile: 'ملفي', settings: 'الإعدادات',
         workouts: 'تمارين', kcalTotal: 'سعرة محروقة', bestScore: 'أفضل نتيجة',
