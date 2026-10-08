@@ -1,8 +1,8 @@
 # Motion Trail
 
-Version 1.0.1 · A guided 2D fitness game for My PC and desktop Chrome.
+Version 1.0.2 | A guided 2D fitness game for My PC and desktop Chrome.
 
-Motion Trail presents clear, timed real-world movement prompts: jog in place, step left or right, duck and jump. No motion sensor or controller movement is required; follow the instruction on screen and listen to the short spoken cue. A session has 5 stages with 4 levels each. Prompts are generated from a checked sequence that avoids consecutive jumps and ducks, alternates directional cues, and includes recovery breaks.
+Motion Trail is a three-lane obstacle runner. Barriers approach down the track: side barriers leave a clearly marked open lane, overhead gates call for a duck, and low hurdles call for a jump. The on-screen runner moves through the lanes as you follow the real-world cue. A session has 5 stages with 4 levels each, with recovery breaks. No motion sensor or controller movement is required.
 
 ## Controls
 

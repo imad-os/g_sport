@@ -2,11 +2,11 @@
   "mypc": 1,
   "id": "motion-trail-coach",
   "name": "Motion Trail",
-  "description": "A guided movement game with real-world running, sidesteps, ducks and jumps.",
+  "description": "A guided three-lane obstacle runner with real-world sidesteps, ducks and jumps.",
   "type": "game",
   "entry": "index.html",
   "icon": "icon.svg",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "scores": true,
   "config": {
     "actionSeconds": 4,
