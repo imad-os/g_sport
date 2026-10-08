@@ -9,12 +9,13 @@
     var W = 960, H = 540, STEP = 1000 / 60, DT = 1 / 60;
     var canvas, ctx, RS = 1, PR = 2, raf = 0, last = 0, acc = 0, running = false;
     var info = null, lang = 'en', rtl = false, t = MT_TXT.en, tier = 'high', fxFull = true;
+    var W3 = null, glCanvas = null, SCR = { x: 0, y: 0, v: true }, S3 = { dist: 0, camX: 0, R: null, OBS: null, ORBS: null, amp: 1, shake: 0, female: true }, biomeFade = 0, wantBiome = -1, biomeTimer = 0, thumbReal = [], thumbTimer = 0;
     var cfg = { speed: 1, restBonus: 0, warmup: 30, cooldown: 30, voice: true, sets: 2 };
 
     /* ---------------- saved data ---------------- */
     var profile = { sex: 0, age: 35, h: 168, w: 72, fit: 0, imp: 0, units: 0 };
     var settings = { ctrl: 0, track: -1, mvol: 2, coach: 1, fx: 0 };
-    var progress = { unlocked: 1, best: [0, 0, 0, 0, 0, 0], workouts: 0, kcal: 0, secs: 0, last: 0 };
+    var progress = { unlocked: 1, best: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], workouts: 0, kcal: 0, secs: 0, last: 0 };
 
     /* ---------------- levels ---------------- */
     var LEVELS = [
@@ -23,8 +24,13 @@
         { theme: 2, speed: 1.10, track: 3, rounds: [['kick'], ['side', 'kick'], ['jump', 'squat'], ['side', 'jump', 'kick']] },
         { theme: 3, speed: 1.15, track: 2, rounds: [['hjump'], ['kick', 'squat'], ['side', 'hjump'], ['jump', 'kick'], ['side', 'squat', 'jump', 'kick', 'hjump']] },
         { theme: 4, speed: 1.20, track: 6, rounds: [['side', 'jump'], ['squat', 'kick'], ['hjump', 'side'], ['jump', 'squat', 'kick'], ['side', 'jump', 'squat', 'kick', 'hjump']] },
-        { theme: 5, speed: 1.25, track: 9, rounds: [['side', 'squat'], ['jump', 'kick'], ['hjump', 'squat'], ['side', 'kick'], ['jump', 'squat', 'hjump'], ['side', 'jump', 'squat', 'kick', 'hjump']] }
+        { theme: 5, speed: 1.25, track: 9, rounds: [['side', 'squat'], ['jump', 'kick'], ['hjump', 'squat'], ['side', 'kick'], ['jump', 'squat', 'hjump'], ['side', 'jump', 'squat', 'kick', 'hjump']] },
+        { theme: 6, speed: 1.28, track: 4, rounds: [['side', 'jump'], ['kick', 'squat'], ['hjump', 'side'], ['jump', 'kick'], ['squat', 'hjump'], ['side', 'jump', 'squat', 'kick', 'hjump']] },
+        { theme: 7, speed: 1.32, track: 5, rounds: [['side', 'squat', 'jump'], ['kick', 'hjump'], ['side', 'kick'], ['jump', 'squat'], ['hjump', 'side', 'kick'], ['side', 'jump', 'squat', 'kick', 'hjump']] },
+        { theme: 8, speed: 1.36, track: 8, rounds: [['jump', 'kick', 'side'], ['squat', 'hjump'], ['side', 'jump'], ['kick', 'squat', 'hjump'], ['side', 'squat'], ['side', 'jump', 'squat', 'kick', 'hjump']] },
+        { theme: 9, speed: 1.4, track: 7, rounds: [['side', 'jump', 'squat'], ['kick', 'hjump', 'side'], ['jump', 'squat', 'kick'], ['side', 'hjump'], ['squat', 'kick', 'jump'], ['side', 'jump', 'squat', 'kick', 'hjump']] }
     ];
+    var NL = LEVELS.length;
     var WORK_REST = [[20, 40], [30, 30], [40, 20]];
     var BASE_SPEED = [8.5, 10, 11.5];
     var GAP = [3.4, 2.7, 2.1];
@@ -123,7 +129,11 @@
         { sky: ['#3a1736', '#b2423a', '#ffb05c'], sun: [0.4, 0.86, 60, '#ffd27a'], far: '#7a2f2a', near: '#5a2421', ground: '#6b3324', track: '#8a4a32', track2: '#7c422c', line: '#ffe2b3', accent: '#ff8a3d', warn: '#ffd23f', edge: '#ffcf8a', fog: 'rgba(255,176,92,', kind: 'canyon', stars: 0 },
         { sky: ['#07020f', '#1c0a33', '#3d0f4f'], sun: [0.78, 0.5, 30, '#ff7ad9'], far: '#170a26', near: '#12081e', ground: '#0c0716', track: '#17112a', track2: '#130e23', line: '#ff3fb4', accent: '#2ef2ff', warn: '#ff3fb4', edge: '#2ef2ff', fog: 'rgba(61,15,79,', kind: 'neon', stars: 1 },
         { sky: ['#4a86c5', '#9cc9ec', '#e8f6ff'], sun: [0.3, 0.3, 34, '#ffffff'], far: '#a9c8e6', near: '#7fa6cc', ground: '#dbe9f5', track: '#9fb6cc', track2: '#93abc2', line: '#ffffff', accent: '#2f8dff', warn: '#ff5a6e', edge: '#ffffff', fog: 'rgba(232,246,255,', kind: 'ice', stars: 0 },
-        { sky: ['#000003', '#060b1f', '#141a3a'], sun: [0.72, 0.42, 70, '#7b8cff'], far: '#1a2040', near: '#101530', ground: '#0a0d1e', track: '#1d2338', track2: '#181d30', line: '#8a7dff', accent: '#8a7dff', warn: '#ff5f8a', edge: '#55e6ff', fog: 'rgba(20,26,58,', kind: 'space', stars: 1 }
+        { sky: ['#000003', '#060b1f', '#141a3a'], sun: [0.72, 0.42, 70, '#7b8cff'], far: '#1a2040', near: '#101530', ground: '#0a0d1e', track: '#1d2338', track2: '#181d30', line: '#8a7dff', accent: '#8a7dff', warn: '#ff5f8a', edge: '#55e6ff', fog: 'rgba(20,26,58,', kind: 'space', stars: 1 },
+        { sky: ['#5f8fc9', '#a9c9e2', '#e9e4c8'], sun: [0.3, 0.6, 34, '#ffe7b0'], far: '#5f7f5a', near: '#2e4a2a', ground: '#3a3a1c', track: '#7a5a3c', track2: '#6e5034', line: '#ffffff', accent: '#ffd84a', warn: '#ff6a3a', edge: '#ffe08a', fog: 'rgba(185,201,169,', kind: 'ice', stars: 0 },
+        { sky: ['#3e3d7a', '#d0708a', '#ffb067'], sun: [0.25, 0.9, 50, '#ffbf80'], far: '#5a4a6a', near: '#3a3a4a', ground: '#4a5a3a', track: '#3a3c44', track2: '#33353d', line: '#ffffff', accent: '#3fd8ff', warn: '#ff5f6d', edge: '#ffd27a', fog: 'rgba(240,163,131,', kind: 'canyon', stars: 0 },
+        { sky: ['#120606', '#3d0e08', '#8a2a10'], sun: [0.6, 0.8, 50, '#ff7a3a'], far: '#1a0806', near: '#120403', ground: '#1a1210', track: '#2a2422', track2: '#241f1d', line: '#ffb347', accent: '#ff5a1f', warn: '#ffb03a', edge: '#ff5a1f', fog: 'rgba(58,18,10,', kind: 'canyon', stars: 0 },
+        { sky: ['#020617', '#06233a', '#1a4a5a'], sun: [0.3, 0.4, 24, '#cfe8ff'], far: '#1a3248', near: '#0f2232', ground: '#8fa1b6', track: '#b9c6d4', track2: '#adbccb', line: '#7affc8', accent: '#7affc8', warn: '#ff6ad5', edge: '#7affc8', fog: 'rgba(15,44,60,', kind: 'ice', stars: 1 }
     ];
     var theme = THEMES[0], themeIdx = -1;
     var skyCv = null, sceneryCv = [], spr = {}, fogGrad = null, groundGrad = null, vignette = null, thumbs = [];
@@ -134,6 +144,7 @@
     function sc(z) { return FOCAL / (z + CAM_D); }
     function gy(z) { return HOR + CAM_H * sc(z); }
     function sx(x, z) { return CX + (x - camX) * sc(z); }
+    function scr(x, y, z) { if (W3) { W3.project(x, y, z, SCR); return; } SCR.x = sx(x, z); SCR.y = gy(z) - y * sc(z); }
 
     /* ---------------- sprite factory (runs on theme change only) ---------------- */
     function glowDot(r, color) {
@@ -310,7 +321,9 @@
     function setTheme(i) {
         if (i === themeIdx) return;
         themeIdx = i; theme = THEMES[i];
-        skyCv = makeSky(theme); sceneryCv = makeScenery(theme); spr = makeObstacles(theme);
+        if (W3) { W3.setBiome(i); biomeFade = 1; thumbTimer = 0; }
+        else { skyCv = makeSky(theme); sceneryCv = makeScenery(theme); }
+        spr = makeObstacles(theme);
         fogGrad = ctx.createLinearGradient(0, HOR - 40, 0, HOR + 70);
         fogGrad.addColorStop(0, theme.fog + '0)'); fogGrad.addColorStop(0.4, theme.fog + '0.55)'); fogGrad.addColorStop(1, theme.fog + '0)');
         groundGrad = ctx.createLinearGradient(0, HOR, 0, H);
@@ -368,7 +381,7 @@
 
     function startDemo() {
         world.demo = true; clearWorld(); resetRunner();
-        setTheme(LEVELS[clamp(progress.last, 0, 5)].theme);
+        setTheme(LEVELS[clamp(progress.last, 0, NL - 1)].theme);
         world.base = 9; world.speed = 8; world.target = 8; spawnT = 1.5; plannedLane = 0;
         lowMode = lowImpact();
     }
@@ -419,9 +432,9 @@
         var prev = progress.best[level] || 0;
         newRecord = score > prev;
         if (newRecord) { progress.best[level] = score; voiceQueue('record'); }
-        progress.unlocked = Math.max(progress.unlocked, Math.min(6, level + 2));
+        progress.unlocked = Math.max(progress.unlocked, Math.min(NL, level + 2));
         progress.workouts++; progress.kcal += kcal; progress.secs += totalLen;
-        progress.last = Math.min(5, level + 1 < progress.unlocked ? level + 1 : level);
+        progress.last = Math.min(NL - 1, level + 1 < progress.unlocked ? level + 1 : level);
         MyPC.save('progress', progress);
         MyPC.submitScore(score);
     }
@@ -520,8 +533,7 @@
         else sfx('whoosh');
     }
     function burst(o) {
-        var s = sc(o.z), y = gy(o.z) - 0.9 * s;
-        for (var l = -1; l <= 1; l++) for (var k = 0; k < (fxFull ? 7 : 3); k++) spawnPart(sx(l * LANE, o.z), y, (rnd() - 0.5) * 260, -120 - rnd() * 220, 0.7, 3 + rnd() * 4, theme.warn);
+        for (var l = -1; l <= 1; l++) { scr(l * LANE, 0.9, o.z); for (var k = 0; k < (fxFull ? 7 : 3); k++) spawnPart(SCR.x, SCR.y, (rnd() - 0.5) * 260, -120 - rnd() * 220, 0.7, 3 + rnd() * 4, theme.warn); }
     }
 
     function autopilot() {
@@ -541,7 +553,7 @@
         var mult = 1 + Math.min(4, (combo / 5) | 0), p = pts * mult;
         if (!world.demo) {
             score += p; clears++;
-            popup(PLUS[p] || '+' + p, X(W / 2), gy(0) - 200, theme.accent);
+            popup(PLUS[p] || '+' + p, X(W / 2), 200, theme.accent);
             sfx('clear');
             if (combo % 10 === 0) voice('combo', 0);
             else if (feedbackT <= 0 && rnd() < 0.45) { voice(combo % 3 === 0 ? 'perfect' : combo % 2 ? 'nice' : 'great', 0); feedbackT = 6; }
@@ -566,6 +578,9 @@
 
     /* ---------------- update (fixed 60 Hz) ---------------- */
     function update() {
+        if (biomeFade > 0) biomeFade -= DT * 2.2;
+        if (wantBiome >= 0) { biomeTimer -= DT; if (biomeTimer <= 0) { setTheme(wantBiome); wantBiome = -1; } }
+        if (W3 && !thumbReal[themeIdx]) { thumbTimer += DT; if (thumbTimer > 1.2 && thumbs[themeIdx]) { W3.snapshot(thumbs[themeIdx], thumbs[themeIdx].width, thumbs[themeIdx].height); thumbReal[themeIdx] = true; } }
         if (screen === 'play') updatePlay();
         else if (world.demo) updateWorld();
         updateFx();
@@ -658,12 +673,12 @@
             if (!b.got && pz > 0 && b.z <= 0 && Math.abs(R.x - b.lane * LANE) < 1.0 && Math.abs(b.y - (R.y + 0.8)) < 0.95) {
                 b.got = 1; b.on = false;
                 if (!world.demo) { orbsGot++; score += 20; sfx('orb'); }
-                for (var q = 0; q < (fxFull ? 5 : 2); q++) spawnPart(sx(b.lane * LANE, 0) + (rnd() - 0.5) * 30, gy(0) - (b.y + 0.4) * sc(0), (rnd() - 0.5) * 120, -60 - rnd() * 120, 0.5, 3, theme.accent);
+                scr(b.lane * LANE, b.y + 0.2, 0); for (var q = 0; q < (fxFull ? 5 : 2); q++) spawnPart(SCR.x + (rnd() - 0.5) * 30, SCR.y, (rnd() - 0.5) * 120, -60 - rnd() * 120, 0.5, 3, theme.accent);
             }
             if (b.z < -4) b.on = false;
         }
     }
-    function dust() { for (var k = 0; k < (fxFull ? 8 : 3); k++) spawnPart(sx(R.x, 0) + (rnd() - 0.5) * 60, gy(0), (rnd() - 0.5) * 140, -20 - rnd() * 50, 0.45, 3 + rnd() * 3, 'rgba(255,255,255,0.5)'); }
+    function dust() { scr(R.x, 0, 0); for (var k = 0; k < (fxFull ? 8 : 3); k++) spawnPart(SCR.x + (rnd() - 0.5) * 60, SCR.y, (rnd() - 0.5) * 140, -20 - rnd() * 50, 0.45, 3 + rnd() * 3, 'rgba(255,255,255,0.5)'); }
 
     function updateFx() {
         var i;
@@ -732,7 +747,16 @@
             }
         }
         ctx.fillStyle = fogGrad; ctx.fillRect(-10, HOR - 40, W + 20, 110);
-        // speed lines
+        drawSpeedLines();
+        // objects behind the runner plane, far to near
+        drawObjects(FAR, 0.0);
+        drawRunner();
+        drawObjects(0.0, zNear);
+        drawParticles();
+        ctx.setTransform(RS, 0, 0, RS, 0, 0);
+    }
+    function drawSpeedLines() {
+        var k;
         if (fxFull && world.speed > 6) {
             ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 2;
             ctx.beginPath();
@@ -743,12 +767,6 @@
             }
             ctx.stroke();
         }
-        // objects behind the runner plane, far to near
-        drawObjects(FAR, 0.0);
-        drawRunner();
-        drawObjects(0.0, zNear);
-        drawParticles();
-        ctx.setTransform(RS, 0, 0, RS, 0, 0);
     }
 
     function drawObjects(zFrom, zTo) {
@@ -1083,36 +1101,49 @@
         }
         hints(t.hint, 518);
     }
-    function bestAll() { var b = 0; for (var i = 0; i < 6; i++) b = Math.max(b, progress.best[i] || 0); return b; }
+    function bestAll() { var b = 0; for (var i = 0; i < NL; i++) b = Math.max(b, progress.best[i] || 0); return b; }
 
+    var carScroll = 0, lastCard = 0;
     function drawStages() {
-        ctx.fillStyle = 'rgba(4,8,18,0.72)'; ctx.fillRect(0, 0, W, H);
+        // the live 3D world behind shows the selected stage's terrain
+        ctx.fillStyle = shadeTop; ctx.fillRect(0, 0, W, H);
         text(t.stages, X(70), 82, 46, WHITE, A('left'), 800);
-        var low = lowImpact();
-        for (var i = 0; i < 6; i++) {
-            var col = i % 3, row = (i / 3) | 0, vc = rtl ? 2 - col : col, x = 70 + vc * 280, y = 112 + row * 168, w = 260, h = 150, on = gridSel === i, locked = i >= progress.unlocked;
-            if (on) { ctx.globalAlpha = 0.5 + Math.sin(menuAnim * 5) * 0.3; panel(x - 5, y - 5, w + 10, h + 10, 20, null, theme.accent, 8); ctx.globalAlpha = 1; }
-            ctx.save(); rrect(x, y, w, h, 16); ctx.clip();
-            ctx.drawImage(thumbs[LEVELS[i].theme], x, y, w, 120);
-            ctx.fillStyle = GLASS2; ctx.fillRect(x, y + 72, w, h - 72);
-            if (locked) { ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x, y, w, h); }
+        if (S.low) text(t.lowImpact, X(W - 70), 82, 20, theme.accent, A('right'), 800);
+        var focusCard = gridSel === NL ? lastCard : gridSel, cw = 250, ch = 304, gap = 26, y0 = 118;
+        carScroll += (focusCard - carScroll) * 0.18;
+        for (var i = 0; i < NL; i++) {
+            var off = (i - carScroll) * (cw + gap), x = W / 2 - cw / 2 + (rtl ? -off : off);
+            if (x > W + 20 || x + cw < -20) continue;
+            var on = gridSel === i, locked = i >= progress.unlocked, th = THEMES[LEVELS[i].theme];
+            var grow = on ? 8 : 0, cx0 = x - grow, cy0 = y0 - grow, w = cw + grow * 2, h = ch + grow * 2;
+            ctx.globalAlpha = on ? 1 : gridSel === NL && i === lastCard ? 0.95 : 0.78;
+            if (on) { ctx.globalAlpha = 0.45 + Math.sin(menuAnim * 5) * 0.25; panel(cx0 - 6, cy0 - 6, w + 12, h + 12, 24, null, th.accent, 8); ctx.globalAlpha = 1; }
+            ctx.save(); rrect(cx0, cy0, w, h, 18); ctx.clip();
+            ctx.fillStyle = GLASS2; ctx.fillRect(cx0, cy0, w, h);
+            ctx.drawImage(thumbs[LEVELS[i].theme], cx0, cy0, w, w * 0.5);
+            var fadeG = ctx.createLinearGradient(0, cy0 + w * 0.3, 0, cy0 + w * 0.5); // created only while this menu is open
+            fadeG.addColorStop(0, 'rgba(8,12,24,0)'); fadeG.addColorStop(1, 'rgba(8,12,24,0.86)');
+            ctx.fillStyle = fadeG; ctx.fillRect(cx0, cy0 + w * 0.3, w, w * 0.2);
+            if (locked) { ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(cx0, cy0, w, h); }
             ctx.restore();
-            panel(x, y, w, h, 16, null, on ? FOCUS : LINE, on ? 4 : 2);
-            var al = A('left'), tx = rtl ? x + w - 16 : x + 16;
-            text(S.stageNum[i], tx, y + 32, 18, THEMES[LEVELS[i].theme].accent, al, 800);
-            text(t.stageNames[i], tx, y + 100, 26, WHITE, al, 800);
-            if (locked) { icon('lock', rtl ? x + 30 : x + w - 30, y + 30, 26, WHITE); text(t.lockedHint, tx, y + 132, 16, MUTED, al, 600); }
+            panel(cx0, cy0, w, h, 18, null, on ? FOCUS : LINE, on ? 4 : 2);
+            var al = A('left'), tx = rtl ? cx0 + w - 20 : cx0 + 20, ty = cy0 + w * 0.5;
+            text(S.stageNum[i], tx, ty + 30, 20, th.accent, al, 800);
+            text(t.stageNames[i], tx, ty + 66, 28, WHITE, al, 800);
+            if (locked) { icon('lock', cx0 + w / 2, cy0 + w * 0.25, 40, WHITE); text(t.lockedHint, tx, ty + 104, 18, MUTED, al, 600); }
             else {
-                text(S.stageInfo[i], tx, y + 132, 17, MUTED, al, 600);
-                if (progress.best[i]) { icon('trophy', rtl ? x + 30 : x + w - 30, y + 28, 22, '#ffd27a'); }
+                text(S.stageInfo[i], tx, ty + 100, 19, MUTED, al, 600);
+                text(S.stageKcal[i], tx, ty + 128, 19, MUTED, al, 600);
+                if (progress.best[i]) { icon('trophy', rtl ? cx0 + 34 : cx0 + w - 34, cy0 + 30, 24, '#ffd27a'); text(S.stageBest[i], rtl ? cx0 + 56 : cx0 + w - 54, cy0 + 38, 20, '#ffd27a', A('right'), 800); }
             }
+            ctx.globalAlpha = 1;
         }
-        var bon = gridSel === 6, bw = 200, bx = W / 2 - bw / 2;
-        focusBox(bx, 452, bw, 50, 14, bon, theme.accent);
-        text(t.back, W / 2, 486, 24, WHITE, 'center', 800);
-        if (low) text(t.lowImpact, X(W - 70), 82, 20, theme.accent, A('right'), 800);
-        hints(t.hintGrid, 524 > H ? 524 : 522);
+        var bon = gridSel === NL, bw = 220, bx = W / 2 - bw / 2;
+        focusBox(bx, 446, bw, 46, 14, bon, theme.accent);
+        text(t.back, W / 2, 478, 24, WHITE, 'center', 800);
+        hints(t.hintGrid, 520);
     }
+    var shadeTop = null;
 
     var PROFILE_ROWS = ['sex', 'age', 'height', 'weight', 'fitness', 'impact', 'units', 'done'];
     function profileValue(r) {
@@ -1225,15 +1256,17 @@
     }
     var RES_ICONS = ['star', 'flame', 'clock', 'target', 'bolt', 'orb'];
     // every string the menus and HUD show is built here, outside the frame loop
-    var S = { round: '', stageLine: '', restNext: '', intro: '', titleStage: '', titleStats: null, stageInfo: [], stageNum: [], prof: [], set: [], bmi: '', wr: '', perMin: '', perStage: '', low: false, res: [], resLabels: [] };
+    var S = { round: '', stageLine: '', restNext: '', intro: '', titleStage: '', titleStats: null, stageInfo: [], stageKcal: [], stageBest: [], stageNum: [], prof: [], set: [], bmi: '', wr: '', perMin: '', perStage: '', low: false, res: [], resLabels: [] };
     function refreshUI() {
         var i, low = lowImpact(), wr = WORK_REST[profile.fit];
         S.low = low;
         S.titleStage = t.stage + ' ' + (progress.last + 1);
         S.titleStats = [[t.workouts, String(progress.workouts)], [t.kcalTotal, String(Math.round(progress.kcal))], [t.bestScore, String(bestAll())]];
-        for (i = 0; i < 6; i++) {
+        for (i = 0; i < NL; i++) {
             S.stageNum[i] = t.stage + ' ' + (i + 1);
-            S.stageInfo[i] = LEVELS[i].rounds.length * cfg.sets + ' ' + t.rounds + ' · ' + Math.round(timelineLength(buildTimeline(i)) / 60) + ' ' + t.min + ' · ≈' + Math.round(estimateKcal(i)) + ' ' + t.kcal;
+            S.stageInfo[i] = LEVELS[i].rounds.length * cfg.sets + ' ' + t.rounds + ' · ' + Math.round(timelineLength(buildTimeline(i)) / 60) + ' ' + t.min;
+            S.stageKcal[i] = '≈' + Math.round(estimateKcal(i)) + ' ' + t.kcal;
+            S.stageBest[i] = String(progress.best[i] || 0);
         }
         for (i = 0; i < PROFILE_ROWS.length; i++) S.prof[i] = profileValue(PROFILE_ROWS[i]);
         for (i = 0; i < SETTING_ROWS.length; i++) S.set[i] = settingValue(SETTING_ROWS[i]);
@@ -1258,7 +1291,7 @@
         S.res = [String(score), String(Math.round(kcal)), clock(totalLen), (clears + misses ? Math.round(100 * clears / (clears + misses)) : 100) + '%', String(bestCombo), String(orbsGot)];
     }
     var BTN_NEXT = ['nextStage', 'replay', 'menu'], BTN_LAST = ['replay', 'menu'];
-    function resultButtons() { return level < 5 ? BTN_NEXT : BTN_LAST; }
+    function resultButtons() { return level < NL - 1 ? BTN_NEXT : BTN_LAST; }
 
     function drawPausedOverlay() {
         ctx.setTransform(RS, 0, 0, RS, 0, 0);
@@ -1270,7 +1303,15 @@
     function draw() {
         ctx.setTransform(RS, 0, 0, RS, 0, 0);
         ctx.direction = rtl ? 'rtl' : 'ltr';
-        drawWorld();
+        if (W3) {
+            S3.dist = world.dist; S3.camX = camX; S3.shake = shake > 0 ? (rnd() - 0.5) * shake * 3 : 0; S3.female = profile.sex === 0;
+            S3.amp = world.speed > 6 ? 1 : world.speed > 3 ? 0.6 : 0.35;
+            if (!world.demo && screen === 'play' && (playPhase !== 'run' || seg().type === 'rest')) S3.amp = Math.min(S3.amp, 0.45);
+            W3.render(S3);
+            ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.setTransform(RS, 0, 0, RS, 0, 0);
+            drawSpeedLines(); drawParticles();
+            if (biomeFade > 0) { ctx.globalAlpha = Math.min(1, biomeFade); ctx.fillStyle = '#05070d'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+        } else drawWorld();
         ctx.direction = rtl ? 'rtl' : 'ltr';
         if (screen === 'play') drawHud();
         else if (screen === 'title') drawTitle();
@@ -1298,7 +1339,14 @@
         canvas.width = cw; canvas.height = Math.round(cw * H / W);
         RS = canvas.width / W;
         var scale = Math.min(window.innerWidth / W, window.innerHeight / H);
-        canvas.style.width = Math.round(W * scale) + 'px'; canvas.style.height = Math.round(H * scale) + 'px';
+        var cssW = Math.round(W * scale) + 'px', cssH = Math.round(H * scale) + 'px';
+        canvas.style.width = cssW; canvas.style.height = cssH;
+        var st = document.getElementById('stage'); st.style.width = cssW; st.style.height = cssH;
+        if (W3) {
+            var gcap = tier === 'low' ? 960 : tier === 'mid' ? 1280 : 1600, gw = Math.min(gcap, Math.round(W * s));
+            W3.resize(gw, Math.round(gw * H / W));
+            glCanvas.style.width = cssW; glCanvas.style.height = cssH;
+        }
         ctx.imageSmoothingEnabled = true;
     }
 
@@ -1322,7 +1370,7 @@
         applyVolume();
         MTMusic.renderAllSfx().then(function (b) { sfxBufs = b; }).catch(function () {});
         decodeVoice();
-        playTrack(screen === 'play' ? trackFor(level) : settings.track >= 0 ? settings.track : LEVELS[clamp(progress.last, 0, 5)].track);
+        playTrack(screen === 'play' ? trackFor(level) : settings.track >= 0 ? settings.track : LEVELS[clamp(progress.last, 0, NL - 1)].track);
     }
     function applyVolume() {
         if (!AC) return;
@@ -1431,20 +1479,19 @@
             if (ok) {
                 sfx('select');
                 if (sel === 0) { if (needProfile) { openProfile(); } else startLevel(clamp(progress.last, 0, progress.unlocked - 1)); }
-                else if (sel === 1) { screen = 'stages'; gridSel = clamp(progress.last, 0, 5); say(t.stages); }
+                else if (sel === 1) { screen = 'stages'; gridSel = lastCard = clamp(progress.last, 0, NL - 1); carScroll = gridSel; say(t.stages); }
                 else if (sel === 2) openProfile();
                 else { screen = 'settings'; setSel = 0; say(t.settingsTitle); }
             }
         } else if (screen === 'stages') {
-            if (gridSel === 6) { if (dir === -1) gridSel = 4; }
+            if (gridSel === NL) { if (dir === -1) { gridSel = lastCard; previewStage(); } }
             else {
-                if (lr) gridSel = clamp(gridSel + lr, (gridSel / 3 | 0) * 3, (gridSel / 3 | 0) * 3 + 2);
-                if (dir === 1) gridSel = gridSel < 3 ? gridSel + 3 : 6;
-                else if (dir === -1 && gridSel >= 3) gridSel -= 3;
+                if (lr) { gridSel = clamp(gridSel + lr, 0, NL - 1); previewStage(); }
+                if (dir === 1) { lastCard = gridSel; gridSel = NL; }
             }
-            if (dir || lr) { sfx('move'); say(gridSel === 6 ? t.back : t.stage + ' ' + (gridSel + 1) + ', ' + t.stageNames[gridSel] + (gridSel >= progress.unlocked ? ', ' + t.locked : '')); }
+            if (dir || lr) { sfx('move'); say(gridSel === NL ? t.back : t.stage + ' ' + (gridSel + 1) + ', ' + t.stageNames[gridSel] + (gridSel >= progress.unlocked ? ', ' + t.locked : '')); }
             if (ok) {
-                if (gridSel === 6) { screen = 'title'; sfx('select'); }
+                if (gridSel === NL) { toTitle(); sfx('select'); }
                 else if (gridSel < progress.unlocked) { sfx('select'); progress.last = gridSel; startLevel(gridSel); }
                 else sfx('hit');
             }
@@ -1460,7 +1507,7 @@
             if (dir) { setSel = clamp(setSel + dir, 0, SETTING_ROWS.length - 1); sfx('move'); sayRow(SETTING_ROWS[setSel], settingValue(SETTING_ROWS[setSel])); }
             var sr = SETTING_ROWS[setSel];
             if (lr && sr !== 'done' && !repeat) { if (rtl) lr = -lr; changeSetting(sr, lr); sfx('move'); say(settingValue(sr)); }
-            if (ok && sr === 'done') { MyPC.save('settings', settings); screen = 'title'; sfx('select'); playTrack(settings.track >= 0 ? settings.track : LEVELS[clamp(progress.last, 0, 5)].track); }
+            if (ok && sr === 'done') { MyPC.save('settings', settings); screen = 'title'; sfx('select'); playTrack(settings.track >= 0 ? settings.track : LEVELS[clamp(progress.last, 0, NL - 1)].track); }
         } else if (screen === 'results') {
             var btns = resultButtons();
             if (lr) { resultSel = clamp(resultSel + lr, 0, btns.length - 1); sfx('move'); say(t[btns[resultSel]]); }
@@ -1474,9 +1521,10 @@
         }
     }
     function say(s) { MyPC.announce(s); }
+    function previewStage() { wantBiome = LEVELS[gridSel].theme; biomeTimer = 0.4; }
     function sayRow(r, v) { MyPC.announce((t[r] || t.done) + (v ? ', ' + v : '')); }
     function openProfile() { screen = 'profile'; rowSel = 0; say(t.profileTitle); }
-    function toTitle() { screen = 'title'; sel = 0; refreshUI(); startDemo(); musicMode('warm'); playTrack(settings.track >= 0 ? settings.track : LEVELS[clamp(progress.last, 0, 5)].track); }
+    function toTitle() { screen = 'title'; sel = 0; refreshUI(); wantBiome = -1; startDemo(); musicMode('warm'); playTrack(settings.track >= 0 ? settings.track : LEVELS[clamp(progress.last, 0, NL - 1)].track); }
     function changeProfile(r, d, repeat) {
         var p = profile, imp = p.units === 1, big = repeat ? 1 : 1;
         if (r === 'sex') p.sex = (p.sex + 1) % 2;
@@ -1490,7 +1538,7 @@
     }
     function changeSetting(r, d) {
         if (r === 'controls') settings.ctrl = (settings.ctrl + 1) % 2;
-        else if (r === 'music') { settings.track = ((settings.track + 1 + d + 11) % 11) - 1; playTrack(settings.track >= 0 ? settings.track : LEVELS[clamp(progress.last, 0, 5)].track); musicMode('work'); }
+        else if (r === 'music') { settings.track = ((settings.track + 1 + d + 11) % 11) - 1; playTrack(settings.track >= 0 ? settings.track : LEVELS[clamp(progress.last, 0, NL - 1)].track); musicMode('work'); }
         else if (r === 'musicVol') { settings.mvol = clamp(settings.mvol + d, 0, 3); applyVolume(); }
         else if (r === 'coach') { settings.coach = (settings.coach + 1) % 2; if (settings.coach) voice('welcome', 1); }
         else if (r === 'effects') { settings.fx = (settings.fx + d + 3) % 3; fxFull = settings.fx === 2 || (settings.fx === 0 && tier !== 'low'); }
@@ -1531,15 +1579,21 @@
             mergeSaved(profile, MyPC.load('profile', null));
             mergeSaved(settings, MyPC.load('settings', null));
             mergeSaved(progress, MyPC.load('progress', null));
-            if (!(progress.best instanceof Array) || progress.best.length !== 6) progress.best = [0, 0, 0, 0, 0, 0];
-            progress.unlocked = clamp(progress.unlocked | 0, 1, 6);
+            if (!(progress.best instanceof Array)) progress.best = [];
+            while (progress.best.length < NL) progress.best.push(0);
+            progress.unlocked = clamp(progress.unlocked | 0, 1, NL);
             progress.last = clamp(progress.last | 0, 0, progress.unlocked - 1);
             needProfile = !MyPC.load('hasProfile', false);
             fxFull = settings.fx === 2 || (settings.fx === 0 && tier !== 'low');
-            canvas = document.getElementById('c'); ctx = canvas.getContext('2d', { alpha: false });
+            canvas = document.getElementById('c'); glCanvas = document.getElementById('gl');
+            try { if (window.THREE && window.MTWorld3D && ac.renderer !== '2d') W3 = MTWorld3D.create(glCanvas, { tier: tier }); } catch (e) { W3 = null; }
+            if (!W3) glCanvas.style.display = 'none';
+            S3.R = R; S3.OBS = OBS; S3.ORBS = ORBS;
+            ctx = canvas.getContext('2d');
             resize(); window.addEventListener('resize', resize);
             shadeL = ctx.createLinearGradient(0, 0, W, 0); shadeL.addColorStop(0, 'rgba(4,8,18,0.92)'); shadeL.addColorStop(0.5, 'rgba(4,8,18,0.6)'); shadeL.addColorStop(0.75, 'rgba(4,8,18,0)');
             shadeR = ctx.createLinearGradient(W, 0, 0, 0); shadeR.addColorStop(0, 'rgba(4,8,18,0.92)'); shadeR.addColorStop(0.5, 'rgba(4,8,18,0.6)'); shadeR.addColorStop(0.75, 'rgba(4,8,18,0)');
+            shadeTop = ctx.createLinearGradient(0, 0, 0, H); shadeTop.addColorStop(0, 'rgba(4,8,18,0.85)'); shadeTop.addColorStop(0.3, 'rgba(4,8,18,0.35)'); shadeTop.addColorStop(0.75, 'rgba(4,8,18,0.35)'); shadeTop.addColorStop(1, 'rgba(4,8,18,0.9)');
             MyPC.setMenu([{ id: 'restart', label: t.restart }, { id: 'menu', label: t.quit }]);
             MyPC.progress(0.1);
             var vlang = lang;
@@ -1568,7 +1622,7 @@
             if (AC) { try { AC.resume(); } catch (e) {} }
             startLoop();
         },
-        onDestroy: function () { stopLoop(); window.removeEventListener('resize', resize); closeAudio(); },
+        onDestroy: function () { stopLoop(); window.removeEventListener('resize', resize); closeAudio(); if (W3) { W3.dispose(); W3 = null; } },
         onInput: onInput,
         onMenu: function (id) {
             if (id === 'restart' && (screen === 'play' || screen === 'results')) startLevel(level);

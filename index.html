@@ -13,14 +13,18 @@
   @font-face { font-family: 'Cairo'; font-weight: 700 800; src: url('fonts/cairo-800.woff2?v=2.0.0') format('woff2'); }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #060a14; }
   body { display: flex; align-items: center; justify-content: center; }
-  canvas { display: block; outline: none; }
+  #stage { position: relative; }
+  canvas { display: block; outline: none; position: absolute; left: 0; top: 0; }
+  #gl { background: #060a14; }
 </style>
 </head>
 <body>
-<canvas id="c" width="960" height="540"></canvas>
+<div id="stage"><canvas id="gl" width="960" height="540"></canvas><canvas id="c" width="960" height="540"></canvas></div>
 <script src="https://imad-os.github.io/g/sdk/mypc-sdk.js"></script>
+<script src="lib/three.min.js?v=2.0.0"></script>
 <script src="js/i18n.js?v=2.0.0"></script>
 <script src="js/music.js?v=2.0.0"></script>
+<script src="js/world3d.js?v=2.0.0"></script>
 <script src="js/game.js?v=2.0.0"></script>
 </body>
 </html>

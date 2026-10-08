@@ -262,5 +262,29 @@
   "fr": "Étape six. Anneau orbital !",
   "es": "Etapa seis. ¡Anillo orbital!",
   "ar": "المرحلة السادسة. الحلقة المدارية!"
+ },
+ "stage7": {
+  "en": "Stage seven. Forest Trail!",
+  "fr": "Étape sept. Sentier forestier !",
+  "es": "Etapa siete. ¡Sendero del bosque!",
+  "ar": "المرحلة السابعة. درب الغابة!"
+ },
+ "stage8": {
+  "en": "Stage eight. Coastal Highway!",
+  "fr": "Étape huit. Route côtière !",
+  "es": "Etapa ocho. ¡Carretera de la costa!",
+  "ar": "المرحلة الثامنة. الطريق الساحلي!"
+ },
+ "stage9": {
+  "en": "Stage nine. Volcano Ridge!",
+  "fr": "Étape neuf. Crête du volcan !",
+  "es": "Etapa nueve. ¡Cresta del volcán!",
+  "ar": "المرحلة التاسعة. حافة البركان!"
+ },
+ "stage10": {
+  "en": "Stage ten. Aurora Tundra!",
+  "fr": "Étape dix. Toundra boréale !",
+  "es": "Etapa diez. ¡Tundra de la aurora!",
+  "ar": "المرحلة العاشرة. تندرا الشفق!"
  }
 }
