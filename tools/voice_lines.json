@@ -9,7 +9,7 @@
   "en": "Get ready!",
   "fr": "Préparez-vous !",
   "es": "¡Prepárate!",
-  "ar": "استعد!"
+  "ar": "كن مستعداً!"
  },
  "three": {
   "en": "Three!",
@@ -33,19 +33,19 @@
   "en": "Let's go!",
   "fr": "Partez !",
   "es": "¡Ya!",
-  "ar": "انطلق!"
+  "ar": "هيا انطلق!"
  },
  "warmup": {
   "en": "Warm up. Easy pace, find your rhythm.",
   "fr": "Échauffement. Rythme léger, trouvez votre cadence.",
   "es": "Calentamiento. Ritmo suave, encuentra tu ritmo.",
-  "ar": "إحماء. بإيقاع هادئ، جد إيقاعك."
+  "ar": "إحماء. ابدأ بهدوء."
  },
  "cooldown": {
   "en": "Cool down. Slow it down and breathe.",
   "fr": "Retour au calme. Ralentissez et respirez.",
   "es": "Vuelta a la calma. Baja el ritmo y respira.",
-  "ar": "تهدئة. خفف السرعة وتنفس بعمق."
+  "ar": "تهدئة. ببطء، وتنفس بعمق."
  },
  "rest": {
   "en": "Rest. Breathe deep, shake it out.",
@@ -135,7 +135,7 @@
   "en": "Big jump!",
   "fr": "Sautez haut !",
   "es": "¡Salto alto!",
-  "ar": "قفزة عالية!"
+  "ar": "اقفز عالياً!"
  },
  "squat": {
   "en": "Squat!",
