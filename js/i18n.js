@@ -52,7 +52,7 @@ var MT_TXT = {
         coach: 'COACH VOCAL', onOff: ['NON', 'OUI'], effects: 'EFFETS', effOpts: ['AUTO', 'LÉGERS', 'COMPLETS'],
         warmup: 'ÉCHAUFFEMENT', work: 'EFFORT', rest: 'RÉCUP', cooldown: 'RETOUR AU CALME', round: 'ROUND', kcal: 'KCAL', score: 'SCORE', combo: 'COMBO',
         next: 'ENSUITE', getReady: 'PRÊT ?', go: 'PARTEZ !',
-        mv: { left: 'PAS À GAUCHE', right: 'PAS À DROITE', side: 'PAS CHASSÉ', jump: 'SAUT', hjump: 'GRAND SAUT', squat: 'SQUAT', kick: 'COUP DE PIED', reach: 'BRAS EN L\'AIR', knee: 'MONTÉE DE GENOU', run: 'COURSE SUR PLACE', march: 'MARCHE SUR PLACE', walk: 'MARCHE LÉGÈRE' },
+        mv: { left: 'PAS À GAUCHE', right: 'PAS À DROITE', side: 'PAS CHASSÉ', jump: 'SAUT', hjump: 'SAUTEZ HAUT', squat: 'SQUAT', kick: 'COUP DE PIED', reach: 'LEVEZ LES BRAS', knee: 'MONTÉE DE GENOU', run: 'COURSE SUR PLACE', march: 'MARCHE SUR PLACE', walk: 'MARCHE LÉGÈRE' },
         how: { left: 'Un pas vers la gauche', right: 'Un pas vers la droite', jump: 'Sautez pieds joints', hjump: 'Sautez haut, genoux levés', squat: 'Fesses en arrière, genoux fléchis', kick: 'Coup de pied avant, puis revenez', reach: 'Sur la pointe des pieds, bras en l\'air', knee: 'Montez un genou bien haut' },
         follow: 'SUIVEZ LA COACH', handsFree: 'MAINS LIBRES', lowImpact: 'IMPACT FAIBLE',
         tips: ['Inspirez par le nez, expirez par la bouche.', 'Secouez les bras et les jambes.', 'Buvez une gorgée d\'eau si besoin.', 'Tenez-vous droit, épaules relâchées.'],

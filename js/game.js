@@ -1075,10 +1075,11 @@
         }
         // lifetime stats, top corner opposite the logo
         var cols = S.titleStats;
+        panel(rtl ? 36 : W - 36 - 404, 36, 404, 78, 16, GLASS, LINE, 1.5);
         for (var j = 0; j < 3; j++) {
             var cx = rtl ? 60 + j * 130 : W - 60 - j * 130, ax = A('right');
-            text(cols[j][1], cx, 70, 30, WHITE, ax, 800);
-            text(cols[j][0], cx, 92, 15, MUTED, ax, 700);
+            text(cols[j][1], cx, 74, 30, WHITE, ax, 800);
+            text(cols[j][0], cx, 98, 15, MUTED, ax, 700);
         }
         hints(t.hint, 518);
     }
@@ -1380,8 +1381,8 @@
     // prio: 3 move cue (interrupts), 2 important, 1 info, 0 feedback (dropped when busy)
     var voicePrio = 0;
     function voice(key, prio) {
-        if (!settings.coach || !cfg.voice) { if (prio >= 2 && (key === 'three' || key === 'two' || key === 'one')) sfx('beep'); return; }
-        if (!AC || !voiceBuf || !voiceClips || !voiceClips[key]) { if (prio >= 2) sfx('beep'); return; }
+        // countdown beeps and the 'go' tone play separately, so a missing clip needs no fallback
+        if (!settings.coach || !cfg.voice || !AC || !voiceBuf || !voiceClips || !voiceClips[key]) return;
         var now = AC.currentTime, busy = now < voiceEnd;
         if (busy && prio <= voicePrio && prio < 3) { if (prio >= 1) { pendingVoice = key; pendingAt = now; } return; }
         if (voiceSrc && busy) { try { voiceSrc.stop(); } catch (e) {} }
