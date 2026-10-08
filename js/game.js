@@ -5,7 +5,7 @@
 (function () {
     'use strict';
 
-    var VERSION = '2.0.0';
+    var VERSION = '2.1.0';
     var W = 960, H = 540, STEP = 1000 / 60, DT = 1 / 60;
     var canvas, ctx, RS = 1, PR = 2, raf = 0, last = 0, acc = 0, running = false;
     var info = null, lang = 'en', rtl = false, t = MT_TXT.en, tier = 'high', fxFull = true;
@@ -14,8 +14,11 @@
 
     /* ---------------- saved data ---------------- */
     var profile = { sex: 0, age: 35, h: 168, w: 72, fit: 0, imp: 0, units: 0 };
-    var settings = { ctrl: 0, track: -1, mvol: 2, coach: 1, fx: 0 };
-    var progress = { unlocked: 1, best: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], workouts: 0, kcal: 0, secs: 0, last: 0 };
+    var settings = { ctrl: 1, track: -1, mvol: 2, coach: 1, fx: 0, cv: 2 };
+    // custom workout: moves in CUSTOM_MOVES order, work/rest seconds, rounds, terrain (stage) index
+    var CUSTOM_MOVES = ['side', 'jump', 'squat', 'kick', 'hjump'], PRESETS = [[20, 10], [30, 10], [40, 20], [45, 15], [60, 10]];
+    var custom = { pre: 4, work: 60, rest: 10, rounds: 8, moves: [1, 1, 1, 1, 0], terrain: 0 }, customRun = false;
+    var progress = { unlocked: 1, best: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], bestCustom: 0, workouts: 0, kcal: 0, secs: 0, last: 0 };
 
     /* ---------------- levels ---------------- */
     var LEVELS = [
@@ -31,7 +34,8 @@
         { theme: 9, speed: 1.4, track: 7, rounds: [['side', 'jump', 'squat'], ['kick', 'hjump', 'side'], ['jump', 'squat', 'kick'], ['side', 'hjump'], ['squat', 'kick', 'jump'], ['side', 'jump', 'squat', 'kick', 'hjump']] }
     ];
     var NL = LEVELS.length;
-    var WORK_REST = [[20, 40], [30, 30], [40, 20]];
+    var WORK_REST = [[20, 10], [30, 10], [40, 10]];
+    var LOW_REST_BONUS = 5;
     var BASE_SPEED = [8.5, 10, 11.5];
     var GAP = [3.4, 2.7, 2.1];
     // MET values (standard, low impact). Sources: Compendium of Physical Activities, approximated.
@@ -66,11 +70,12 @@
 
     function buildTimeline(li) {
         var L = LEVELS[li], wr = WORK_REST[profile.fit], low = lowImpact(), out = [], n = L.rounds.length;
-        var work = wr[0], rest = wr[1] + (low ? 10 : 0) + cfg.restBonus;
+        var work = wr[0], rest = wr[1] + (low ? LOW_REST_BONUS : 0) + cfg.restBonus, focusList = L.rounds;
         n = L.rounds.length * cfg.sets;
+        if (customRun) { work = custom.work; rest = custom.rest + (low ? LOW_REST_BONUS : 0); n = custom.rounds; focusList = [customFocus()]; }
         out.push({ type: 'warmup', dur: cfg.warmup, round: 0, focus: null, start: 0 });
         for (var r = 0; r < n; r++) {
-            out.push({ type: 'work', dur: work, round: r + 1, focus: L.rounds[r % L.rounds.length], start: 0 });
+            out.push({ type: 'work', dur: work, round: r + 1, focus: focusList[r % focusList.length], start: 0 });
             if (r < n - 1) out.push({ type: 'rest', dur: rest, round: r + 1, focus: null, start: 0 });
         }
         out.push({ type: 'cooldown', dur: cfg.cooldown, round: 0, focus: null, start: 0 });
@@ -78,9 +83,13 @@
         for (var i = 0; i < out.length; i++) { out[i].start = s; s += out[i].dur; }
         return out;
     }
+    function customFocus() { var f = []; for (var i = 0; i < CUSTOM_MOVES.length; i++) if (custom.moves[i]) f.push(CUSTOM_MOVES[i]); return f.length ? f : ['side']; }
     function timelineLength(tl) { var s = 0; for (var i = 0; i < tl.length; i++) s += tl[i].dur; return s; }
-    function estimateKcal(li) {
-        var tl = buildTimeline(li), low = lowImpact(), k = 0, r = rmrPerSec();
+    function estimateKcal(li, asCustom) {
+        var was = customRun; customRun = !!asCustom;
+        var tl = buildTimeline(li);
+        customRun = was;
+        var low = lowImpact(), k = 0, r = rmrPerSec();
         for (var i = 0; i < tl.length; i++) k += segMet(tl[i], low) * r * tl[i].dur;
         return k;
     }
@@ -386,8 +395,9 @@
         lowMode = lowImpact();
     }
 
-    function startLevel(li) {
-        level = li; progress.last = li;
+    function startLevel(li, asCustom) {
+        customRun = !!asCustom;
+        level = li; if (!customRun) progress.last = li;
         world.demo = false; clearWorld(); resetRunner();
         setTheme(LEVELS[li].theme);
         lowMode = lowImpact(); handsFree = settings.ctrl === 1;
@@ -402,11 +412,11 @@
         refreshUI();
         playTrack(trackFor(li));
         musicMode('warm');
-        voice('stage' + (li + 1), 2); voiceQueue('getready');
-        MyPC.announce(t.stage + ' ' + (li + 1) + '. ' + t.stageNames[li]);
+        if (customRun) { voice('getready', 2); MyPC.announce(t.customTitle + '. ' + t.stageNames[li]); }
+        else { voice('stage' + (li + 1), 2); voiceQueue('getready'); MyPC.announce(t.stage + ' ' + (li + 1) + '. ' + t.stageNames[li]); }
     }
     function seg() { return timeline[segIdx]; }
-    function roundsTotal() { return LEVELS[level].rounds.length * cfg.sets; }
+    function roundsTotal() { return customRun ? custom.rounds : LEVELS[level].rounds.length * cfg.sets; }
     function segRemain() { return seg().dur - segT; }
 
     function enterSegment() {
@@ -429,12 +439,14 @@
     function finishLevel() {
         playPhase = 'finish'; phaseT = 2.2; world.target = 0; cue = null;
         voice('workoutdone', 2); sfx('fanfare'); musicMode('rest');
-        var prev = progress.best[level] || 0;
+        var prev = customRun ? progress.bestCustom : progress.best[level] || 0;
         newRecord = score > prev;
-        if (newRecord) { progress.best[level] = score; voiceQueue('record'); }
-        progress.unlocked = Math.max(progress.unlocked, Math.min(NL, level + 2));
+        if (newRecord) { if (customRun) progress.bestCustom = score; else progress.best[level] = score; voiceQueue('record'); }
+        if (!customRun) {
+            progress.unlocked = Math.max(progress.unlocked, Math.min(NL, level + 2));
+            progress.last = Math.min(NL - 1, level + 1 < progress.unlocked ? level + 1 : level);
+        }
         progress.workouts++; progress.kcal += kcal; progress.secs += totalLen;
-        progress.last = Math.min(NL - 1, level + 1 < progress.unlocked ? level + 1 : level);
         MyPC.save('progress', progress);
         MyPC.submitScore(score);
     }
@@ -1045,7 +1057,7 @@
 
     /* ---------------- menus ---------------- */
     var screen = 'title', menuAnim = 0, sel = 0, gridSel = 0, rowSel = 0, setSel = 0, needProfile = false, previewTrack = -1;
-    var TITLE_ITEMS = ['play', 'stages', 'profile', 'settings'], TITLE_ICONS = ['play', 'grid', 'user', 'gear'];
+    var TITLE_ITEMS = ['play', 'custom', 'stages', 'profile', 'settings'], TITLE_ICONS = ['play', 'bolt', 'grid', 'user', 'gear'];
     var FOCUS = '#ffffff';
 
     function focusBox(x, y, w, h, r, on, accent) {
@@ -1085,11 +1097,11 @@
         text(t.tag, x, 222, 19, MUTED, al, 700);
         if (needProfile) text(t.firstRun, x, 250, 19, theme.accent, al, 700);
         for (var i = 0; i < TITLE_ITEMS.length; i++) {
-            var y = 268 + i * 56, on = sel === i, w = 360, bx = rtl ? W - 70 - w : 70;
-            focusBox(bx, y, w, 46, 14, on, theme.accent);
-            icon(TITLE_ICONS[i], rtl ? bx + w - 32 : bx + 32, y + 23, 20, on ? WHITE : MUTED);
-            text(t[TITLE_ITEMS[i]], rtl ? bx + w - 62 : bx + 62, y + 32, 26, WHITE, al, 800);
-            if (i === 0) text(S.titleStage, rtl ? bx + 22 : bx + w - 22, y + 31, 20, on ? WHITE : MUTED, A('right'), 700);
+            var y = 264 + i * 48, on = sel === i, w = 360, bx = rtl ? W - 70 - w : 70;
+            focusBox(bx, y, w, 40, 13, on, theme.accent);
+            icon(TITLE_ICONS[i], rtl ? bx + w - 32 : bx + 32, y + 20, 19, on ? WHITE : MUTED);
+            text(t[TITLE_ITEMS[i]], rtl ? bx + w - 62 : bx + 62, y + 29, 24, WHITE, al, 800);
+            if (i === 0) text(S.titleStage, rtl ? bx + 22 : bx + w - 22, y + 28, 19, on ? WHITE : MUTED, A('right'), 700);
         }
         // lifetime stats, top corner opposite the logo
         var cols = S.titleStats;
@@ -1216,6 +1228,83 @@
         }
         return '';
     }
+    /* ---------------- custom workout ---------------- */
+    var CUSTOM_ROWS = ['preset', 'workTime', 'restTime', 'rounds', 'moves', 'terrain', 'go'], custSel = 0, moveSel = 0, goSel = 0;
+    var MOVE_ICON = { side: 'lr', jump: 'jump', squat: 'squat', kick: 'kick', hjump: 'hjump' };
+    function refreshCustom() {
+        S.cust = S.cust || [];
+        S.cust[0] = custom.pre < PRESETS.length ? PRESETS[custom.pre][0] + '/' + PRESETS[custom.pre][1] : t.own;
+        S.cust[1] = custom.work + ' ' + t.sec; S.cust[2] = custom.rest + ' ' + t.sec; S.cust[3] = String(custom.rounds);
+        S.cust[5] = (custom.terrain + 1) + ' · ' + t.stageNames[custom.terrain];
+        var was = customRun; customRun = true;
+        var len = timelineLength(buildTimeline(custom.terrain));
+        customRun = was;
+        S.custTotal = t.total + '  ' + clock(len) + '   ·   ≈' + Math.round(estimateKcal(custom.terrain, true)) + ' ' + t.kcal;
+        S.custMoves = []; for (var i = 0; i < CUSTOM_MOVES.length; i++) S.custMoves[i] = moveLabel(CUSTOM_MOVES[i]);
+    }
+    function openCustom() { screen = 'custom'; custSel = 0; goSel = 0; refreshUI(); wantBiome = LEVELS[custom.terrain].theme; biomeTimer = 0.2; say(t.customTitle); }
+    function drawCustom() {
+        ctx.fillStyle = 'rgba(4,8,18,0.72)'; ctx.fillRect(0, 0, W, H);
+        text(t.customTitle, X(70), 70, 40, WHITE, A('left'), 800);
+        text(S.custTotal, X(W - 70), 70, 22, theme.accent, A('right'), 800);
+        var lx = 110, w = 740, y = 96, i;
+        for (i = 0; i < CUSTOM_ROWS.length; i++) {
+            var r = CUSTOM_ROWS[i], on = custSel === i, h = r === 'moves' ? 66 : 44;
+            if (r === 'go') {
+                for (var b = 0; b < 2; b++) {
+                    var bw = 230, k = rtl ? 1 - b : b, bx = W / 2 - bw - 10 + k * (bw + 20);
+                    focusBox(bx, y + 4, bw, 44, 14, on && goSel === b, theme.accent);
+                    if (b === 0) icon('play', bx + 34, y + 26, 18, WHITE);
+                    text(b === 0 ? t.play : t.back, bx + bw / 2 + (b === 0 ? 10 : 0), y + 36, 24, WHITE, 'center', 800);
+                }
+                break;
+            }
+            focusBox(lx, y, w, h, 13, on, theme.accent);
+            text(t[r], rtl ? lx + w - 22 : lx + 22, y + h / 2 + 7, 20, on ? WHITE : MUTED, A('left'), 700);
+            if (r === 'moves') {
+                for (var m = 0; m < CUSTOM_MOVES.length; m++) {
+                    var cx = rtl ? lx + w - 236 - 92 - m * 100 : lx + 236 + m * 100, picked = custom.moves[m], cur = on && moveSel === m;
+                    panel(cx, y + 7, 92, 52, 10, picked ? theme.accent : 'rgba(255,255,255,0.06)', cur ? FOCUS : picked ? null : LINE, cur ? 3 : 1.5);
+                    icon(MOVE_ICON[CUSTOM_MOVES[m]], cx + 46, y + 23, 16, picked ? '#0b1020' : MUTED);
+                    text(S.custMoves[m], cx + 46, y + 52, 16, picked ? '#0b1020' : MUTED, 'center', 800);
+                }
+            } else {
+                var vx = rtl ? lx + 230 : lx + 510;
+                text(S.cust[i], vx, y + 30, 23, WHITE, 'center', 800);
+                if (on) { ctx.fillStyle = theme.accent; tri(vx - 170, y + 21, 8, 3); tri(vx + 170, y + 21, 8, 1); }
+            }
+            y += h + 6;
+        }
+        hints(t.hintCustom, 520);
+    }
+    function changeCustom(r, d) {
+        if (r === 'preset') { custom.pre = (custom.pre + d + PRESETS.length + 1) % (PRESETS.length + 1); if (custom.pre < PRESETS.length) { custom.work = PRESETS[custom.pre][0]; custom.rest = PRESETS[custom.pre][1]; } }
+        else if (r === 'workTime') { custom.work = clamp(custom.work + d * 5, 10, 180); custom.pre = presetOf(); }
+        else if (r === 'restTime') { custom.rest = clamp(custom.rest + d * 5, 5, 90); custom.pre = presetOf(); }
+        else if (r === 'rounds') custom.rounds = clamp(custom.rounds + d, 1, 30);
+        else if (r === 'terrain') { custom.terrain = (custom.terrain + d + NL) % NL; wantBiome = LEVELS[custom.terrain].theme; biomeTimer = 0.4; }
+        refreshCustom();
+    }
+    function presetOf() { for (var i = 0; i < PRESETS.length; i++) if (PRESETS[i][0] === custom.work && PRESETS[i][1] === custom.rest) return i; return PRESETS.length; }
+    function customInput(ok, dir, lr, repeat) {
+        if (dir) { custSel = clamp(custSel + dir, 0, CUSTOM_ROWS.length - 1); sfx('move'); var rr = CUSTOM_ROWS[custSel]; say(rr === 'go' ? (goSel ? t.back : t.play) : rr === 'moves' ? t.moves : t[rr] + ', ' + S.cust[custSel]); }
+        var r = CUSTOM_ROWS[custSel];
+        if (rtl && (r === 'moves' || r === 'go')) lr = -lr; // these rows are drawn mirrored
+        if (r === 'moves') {
+            if (lr) { moveSel = clamp(moveSel + lr, 0, CUSTOM_MOVES.length - 1); sfx('move'); say(S.custMoves[moveSel]); }
+            if (ok) {
+                var n = 0; for (var i = 0; i < custom.moves.length; i++) n += custom.moves[i];
+                if (custom.moves[moveSel] && n <= 1) { sfx('hit'); return; } // keep at least one move
+                custom.moves[moveSel] = custom.moves[moveSel] ? 0 : 1; sfx('select'); refreshCustom();
+                say(S.custMoves[moveSel] + ', ' + t.onOff[custom.moves[moveSel]]);
+            }
+        } else if (r === 'go') {
+            if (lr && !repeat) { goSel = clamp(goSel + lr, 0, 1); sfx('move'); say(goSel ? t.back : t.play); }
+            if (ok) { MyPC.save('custom', custom); sfx('select'); if (goSel === 0) startLevel(custom.terrain, true); else toTitle(); }
+        } else if (lr) { changeCustom(r, lr); sfx('move'); say(S.cust[custSel]); }
+        else if (ok && custSel < CUSTOM_ROWS.length - 1) { custSel = CUSTOM_ROWS.length - 1; goSel = 0; sfx('move'); }
+    }
+
     function drawSettings() {
         ctx.fillStyle = 'rgba(4,8,18,0.78)'; ctx.fillRect(0, 0, W, H);
         text(t.settingsTitle, X(70), 80, 44, WHITE, A('left'), 800);
@@ -1271,11 +1360,12 @@
         for (i = 0; i < PROFILE_ROWS.length; i++) S.prof[i] = profileValue(PROFILE_ROWS[i]);
         for (i = 0; i < SETTING_ROWS.length; i++) S.set[i] = settingValue(SETTING_ROWS[i]);
         S.bmi = bmi().toFixed(1);
-        S.wr = wr[0] + 's / ' + (wr[1] + (low ? 10 : 0) + cfg.restBonus) + 's';
+        S.wr = wr[0] + 's / ' + (wr[1] + (low ? LOW_REST_BONUS : 0) + cfg.restBonus) + 's';
         S.perMin = '≈' + (workMet(['side', 'squat', 'jump', 'kick'], low) * rmrPerSec() * 60).toFixed(1);
         S.perStage = '≈' + Math.round(estimateKcal(0));
-        S.stageLine = t.stage + ' ' + (level + 1) + ' · ' + t.stageNames[level];
-        S.intro = t.stage + ' ' + (level < 9 ? '0' : '') + (level + 1);
+        S.stageLine = customRun ? t.custom + ' · ' + t.stageNames[level] : t.stage + ' ' + (level + 1) + ' · ' + t.stageNames[level];
+        S.intro = customRun ? t.customTitle : t.stage + ' ' + (level < 9 ? '0' : '') + (level + 1);
+        refreshCustom();
         S.resLabels = [t.score, t.kcal, t.time, t.accuracy, t.bestCombo, t.orbs];
     }
     function refreshSegment() {
@@ -1291,7 +1381,7 @@
         S.res = [String(score), String(Math.round(kcal)), clock(totalLen), (clears + misses ? Math.round(100 * clears / (clears + misses)) : 100) + '%', String(bestCombo), String(orbsGot)];
     }
     var BTN_NEXT = ['nextStage', 'replay', 'menu'], BTN_LAST = ['replay', 'menu'];
-    function resultButtons() { return level < NL - 1 ? BTN_NEXT : BTN_LAST; }
+    function resultButtons() { return !customRun && level < NL - 1 ? BTN_NEXT : BTN_LAST; }
 
     function drawPausedOverlay() {
         ctx.setTransform(RS, 0, 0, RS, 0, 0);
@@ -1318,6 +1408,7 @@
         else if (screen === 'stages') drawStages();
         else if (screen === 'profile') drawProfile();
         else if (screen === 'settings') drawSettings();
+        else if (screen === 'custom') drawCustom();
         else if (screen === 'results') drawResults();
     }
 
@@ -1479,12 +1570,13 @@
         var ok = action === 'confirm' && !repeat, dir = action === 'up' ? -1 : action === 'down' ? 1 : 0, lr = action === 'left' ? -1 : action === 'right' ? 1 : 0;
         if (rtl && screen !== 'profile' && screen !== 'settings') lr = -lr;
         if (screen === 'title') {
-            if (dir) { sel = (sel + dir + 4) % 4; sfx('move'); say(t[TITLE_ITEMS[sel]]); }
+            if (dir) { sel = (sel + dir + TITLE_ITEMS.length) % TITLE_ITEMS.length; sfx('move'); say(t[TITLE_ITEMS[sel]]); }
             if (ok) {
                 sfx('select');
                 if (sel === 0) { if (needProfile) { openProfile(); } else startLevel(clamp(progress.last, 0, progress.unlocked - 1)); }
-                else if (sel === 1) { screen = 'stages'; gridSel = lastCard = clamp(progress.last, 0, NL - 1); carScroll = gridSel; say(t.stages); }
-                else if (sel === 2) openProfile();
+                else if (sel === 1) { if (needProfile) openProfile(); else openCustom(); }
+                else if (sel === 2) { screen = 'stages'; gridSel = lastCard = clamp(progress.last, 0, NL - 1); carScroll = gridSel; say(t.stages); }
+                else if (sel === 3) openProfile();
                 else { screen = 'settings'; setSel = 0; say(t.settingsTitle); }
             }
         } else if (screen === 'stages') {
@@ -1507,6 +1599,8 @@
                 changeProfile(row, lr, repeat); sfx('move'); say(profileValue(row));
             }
             if (ok && row === 'done') { MyPC.save('profile', profile); needProfile = false; MyPC.save('hasProfile', true); screen = 'title'; sfx('select'); }
+        } else if (screen === 'custom') {
+            customInput(ok, dir, action === 'left' ? -1 : action === 'right' ? 1 : 0, repeat);
         } else if (screen === 'settings') {
             if (dir) { setSel = clamp(setSel + dir, 0, SETTING_ROWS.length - 1); sfx('move'); sayRow(SETTING_ROWS[setSel], settingValue(SETTING_ROWS[setSel])); }
             var sr = SETTING_ROWS[setSel];
@@ -1519,7 +1613,7 @@
                 sfx('select');
                 var b = btns[resultSel];
                 if (b === 'nextStage') startLevel(level + 1);
-                else if (b === 'replay') startLevel(level);
+                else if (b === 'replay') startLevel(level, customRun);
                 else toTitle();
             }
         }
@@ -1581,7 +1675,13 @@
             cfg.voice = ac.voice !== false;
             cfg.sets = clamp(Math.round(+ac.sets || 2), 1, 4);
             mergeSaved(profile, MyPC.load('profile', null));
-            mergeSaved(settings, MyPC.load('settings', null));
+            var savedSet = MyPC.load('settings', null);
+            mergeSaved(settings, savedSet);
+            if (!savedSet || savedSet.cv !== 2) { settings.ctrl = 1; settings.cv = 2; } // hands-free is the new default
+            var savedCustom = MyPC.load('custom', null);
+            mergeSaved(custom, savedCustom);
+            if (!(custom.moves instanceof Array) || custom.moves.length !== CUSTOM_MOVES.length) custom.moves = [1, 1, 1, 1, 0];
+            custom.work = clamp(custom.work | 0, 10, 180); custom.rest = clamp(custom.rest | 0, 5, 90); custom.rounds = clamp(custom.rounds | 0, 1, 30); custom.terrain = clamp(custom.terrain | 0, 0, NL - 1); custom.pre = clamp(custom.pre | 0, 0, PRESETS.length);
             mergeSaved(progress, MyPC.load('progress', null));
             if (!(progress.best instanceof Array)) progress.best = [];
             while (progress.best.length < NL) progress.best.push(0);
@@ -1629,7 +1729,7 @@
         onDestroy: function () { stopLoop(); window.removeEventListener('resize', resize); closeAudio(); if (W3) { W3.dispose(); W3 = null; } },
         onInput: onInput,
         onMenu: function (id) {
-            if (id === 'restart' && (screen === 'play' || screen === 'results')) startLevel(level);
+            if (id === 'restart' && (screen === 'play' || screen === 'results')) startLevel(level, customRun);
             else if (id === 'menu') toTitle();
         },
         onVolume: function (v) { if (info) info.volume = v; applyVolume(); }
