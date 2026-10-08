@@ -1,0 +1,290 @@
+{
+ "welcome": {
+  "en": "Welcome back! Let's get moving!",
+  "fr": "Bon retour ! On se bouge !",
+  "es": "¡Hola de nuevo! ¡A movernos!",
+  "ar": "أهلاً بعودتك! هيا نتحرك!"
+ },
+ "getready": {
+  "en": "Get ready!",
+  "fr": "Préparez-vous !",
+  "es": "¡Prepárate!",
+  "ar": "استعد!"
+ },
+ "three": {
+  "en": "Three!",
+  "fr": "Trois !",
+  "es": "¡Tres!",
+  "ar": "ثلاثة!"
+ },
+ "two": {
+  "en": "Two!",
+  "fr": "Deux !",
+  "es": "¡Dos!",
+  "ar": "اثنان!"
+ },
+ "one": {
+  "en": "And one!",
+  "fr": "Un !",
+  "es": "¡Uno!",
+  "ar": "واحد!"
+ },
+ "go": {
+  "en": "Let's go!",
+  "fr": "Partez !",
+  "es": "¡Ya!",
+  "ar": "انطلق!"
+ },
+ "warmup": {
+  "en": "Warm up. Easy pace, find your rhythm.",
+  "fr": "Échauffement. Rythme léger, trouvez votre cadence.",
+  "es": "Calentamiento. Ritmo suave, encuentra tu ritmo.",
+  "ar": "إحماء. بإيقاع هادئ، جد إيقاعك."
+ },
+ "cooldown": {
+  "en": "Cool down. Slow it down and breathe.",
+  "fr": "Retour au calme. Ralentissez et respirez.",
+  "es": "Vuelta a la calma. Baja el ritmo y respira.",
+  "ar": "تهدئة. خفف السرعة وتنفس بعمق."
+ },
+ "rest": {
+  "en": "Rest. Breathe deep, shake it out.",
+  "fr": "Récupération. Respirez profondément.",
+  "es": "Descanso. Respira hondo.",
+  "ar": "استراحة. تنفس بعمق."
+ },
+ "work": {
+  "en": "Let's work!",
+  "fr": "Au travail !",
+  "es": "¡A trabajar!",
+  "ar": "هيا إلى العمل!"
+ },
+ "round1": {
+  "en": "Round one!",
+  "fr": "Premier round !",
+  "es": "¡Ronda uno!",
+  "ar": "الجولة الأولى!"
+ },
+ "round2": {
+  "en": "Round two!",
+  "fr": "Deuxième round !",
+  "es": "¡Ronda dos!",
+  "ar": "الجولة الثانية!"
+ },
+ "round3": {
+  "en": "Round three!",
+  "fr": "Troisième round !",
+  "es": "¡Ronda tres!",
+  "ar": "الجولة الثالثة!"
+ },
+ "round4": {
+  "en": "Round four!",
+  "fr": "Quatrième round !",
+  "es": "¡Ronda cuatro!",
+  "ar": "الجولة الرابعة!"
+ },
+ "round5": {
+  "en": "Round five!",
+  "fr": "Cinquième round !",
+  "es": "¡Ronda cinco!",
+  "ar": "الجولة الخامسة!"
+ },
+ "round6": {
+  "en": "Round six!",
+  "fr": "Sixième round !",
+  "es": "¡Ronda seis!",
+  "ar": "الجولة السادسة!"
+ },
+ "lastround": {
+  "en": "Last round! Give it everything!",
+  "fr": "Dernier round ! Donnez tout !",
+  "es": "¡Última ronda! ¡Dalo todo!",
+  "ar": "الجولة الأخيرة! أعطِ كل ما لديك!"
+ },
+ "halfway": {
+  "en": "Halfway there! Keep pushing!",
+  "fr": "À mi-parcours ! On continue !",
+  "es": "¡A mitad de camino! ¡Sigue así!",
+  "ar": "منتصف الطريق! واصل!"
+ },
+ "tensec": {
+  "en": "Ten seconds! Push!",
+  "fr": "Dix secondes ! On pousse !",
+  "es": "¡Diez segundos! ¡Fuerza!",
+  "ar": "عشر ثوانٍ! هيا!"
+ },
+ "left": {
+  "en": "Step left!",
+  "fr": "Pas à gauche !",
+  "es": "¡Paso a la izquierda!",
+  "ar": "خطوة لليسار!"
+ },
+ "right": {
+  "en": "Step right!",
+  "fr": "Pas à droite !",
+  "es": "¡Paso a la derecha!",
+  "ar": "خطوة لليمين!"
+ },
+ "jump": {
+  "en": "Jump!",
+  "fr": "Sautez !",
+  "es": "¡Salta!",
+  "ar": "اقفز!"
+ },
+ "highjump": {
+  "en": "Big jump!",
+  "fr": "Sautez haut !",
+  "es": "¡Salto alto!",
+  "ar": "قفزة عالية!"
+ },
+ "squat": {
+  "en": "Squat!",
+  "fr": "Squat !",
+  "es": "¡Sentadilla!",
+  "ar": "انزل! قرفصاء!"
+ },
+ "kick": {
+  "en": "Kick!",
+  "fr": "Coup de pied !",
+  "es": "¡Patada!",
+  "ar": "اركل!"
+ },
+ "reach": {
+  "en": "Reach up!",
+  "fr": "Levez les bras !",
+  "es": "¡Arriba los brazos!",
+  "ar": "ارفع يديك!"
+ },
+ "knee": {
+  "en": "Knee up!",
+  "fr": "Montée de genou !",
+  "es": "¡Rodilla arriba!",
+  "ar": "ارفع ركبتك!"
+ },
+ "run": {
+  "en": "High knees, keep running!",
+  "fr": "Montées de genoux, on court !",
+  "es": "¡Rodillas arriba, sigue corriendo!",
+  "ar": "ارفع ركبتيك، واصل الجري!"
+ },
+ "march": {
+  "en": "March in place!",
+  "fr": "Marchez sur place !",
+  "es": "¡Marcha en el sitio!",
+  "ar": "امشِ في مكانك!"
+ },
+ "nice": {
+  "en": "Nice!",
+  "fr": "Bien !",
+  "es": "¡Bien!",
+  "ar": "رائع!"
+ },
+ "great": {
+  "en": "Great move!",
+  "fr": "Super !",
+  "es": "¡Genial!",
+  "ar": "ممتاز!"
+ },
+ "perfect": {
+  "en": "Perfect!",
+  "fr": "Parfait !",
+  "es": "¡Perfecto!",
+  "ar": "مثالي!"
+ },
+ "combo": {
+  "en": "You're on fire!",
+  "fr": "Vous êtes en feu !",
+  "es": "¡Estás que ardes!",
+  "ar": "أنت مشتعل!"
+ },
+ "oops": {
+  "en": "Watch out!",
+  "fr": "Attention !",
+  "es": "¡Cuidado!",
+  "ar": "انتبه!"
+ },
+ "keepgoing": {
+  "en": "Keep going, you've got this!",
+  "fr": "Continuez, vous y êtes !",
+  "es": "¡Sigue, tú puedes!",
+  "ar": "استمر، أنت قادر!"
+ },
+ "stagedone": {
+  "en": "Stage complete!",
+  "fr": "Étape terminée !",
+  "es": "¡Etapa completada!",
+  "ar": "اكتملت المرحلة!"
+ },
+ "workoutdone": {
+  "en": "Workout complete! Amazing job!",
+  "fr": "Séance terminée ! Excellent travail !",
+  "es": "¡Entrenamiento completado! ¡Increíble!",
+  "ar": "انتهى التمرين! عمل رائع!"
+ },
+ "record": {
+  "en": "New record!",
+  "fr": "Nouveau record !",
+  "es": "¡Nuevo récord!",
+  "ar": "رقم قياسي جديد!"
+ },
+ "stage1": {
+  "en": "Stage one. Dawn Boulevard!",
+  "fr": "Étape un. Boulevard de l'aube !",
+  "es": "Etapa uno. ¡Bulevar del amanecer!",
+  "ar": "المرحلة الأولى. شارع الفجر!"
+ },
+ "stage2": {
+  "en": "Stage two. Harbor Lights!",
+  "fr": "Étape deux. Lumières du port !",
+  "es": "Etapa dos. ¡Luces del puerto!",
+  "ar": "المرحلة الثانية. أضواء الميناء!"
+ },
+ "stage3": {
+  "en": "Stage three. Canyon Run!",
+  "fr": "Étape trois. Course du canyon !",
+  "es": "Etapa tres. ¡Carrera del cañón!",
+  "ar": "المرحلة الثالثة. سباق الوادي!"
+ },
+ "stage4": {
+  "en": "Stage four. Neon District!",
+  "fr": "Étape quatre. Quartier néon !",
+  "es": "Etapa cuatro. ¡Distrito neón!",
+  "ar": "المرحلة الرابعة. حي النيون!"
+ },
+ "stage5": {
+  "en": "Stage five. Glacier Pass!",
+  "fr": "Étape cinq. Col du glacier !",
+  "es": "Etapa cinco. ¡Paso del glaciar!",
+  "ar": "المرحلة الخامسة. ممر الجليد!"
+ },
+ "stage6": {
+  "en": "Stage six. Orbit Ring!",
+  "fr": "Étape six. Anneau orbital !",
+  "es": "Etapa seis. ¡Anillo orbital!",
+  "ar": "المرحلة السادسة. الحلقة المدارية!"
+ },
+ "stage7": {
+  "en": "Stage seven. Forest Trail!",
+  "fr": "Étape sept. Sentier forestier !",
+  "es": "Etapa siete. ¡Sendero del bosque!",
+  "ar": "المرحلة السابعة. درب الغابة!"
+ },
+ "stage8": {
+  "en": "Stage eight. Coastal Highway!",
+  "fr": "Étape huit. Route côtière !",
+  "es": "Etapa ocho. ¡Carretera de la costa!",
+  "ar": "المرحلة الثامنة. الطريق الساحلي!"
+ },
+ "stage9": {
+  "en": "Stage nine. Volcano Ridge!",
+  "fr": "Étape neuf. Crête du volcan !",
+  "es": "Etapa nueve. ¡Cresta del volcán!",
+  "ar": "المرحلة التاسعة. حافة البركان!"
+ },
+ "stage10": {
+  "en": "Stage ten. Aurora Tundra!",
+  "fr": "Étape dix. Toundra boréale !",
+  "es": "Etapa diez. ¡Tundra de la aurora!",
+  "ar": "المرحلة العاشرة. تندرا الشفق!"
+ }
+}

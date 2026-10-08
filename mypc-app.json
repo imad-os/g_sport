@@ -2,15 +2,18 @@
   "mypc": 1,
   "id": "motion-trail-coach",
   "name": "Motion Trail",
-  "description": "A guided three-lane obstacle runner with real-world sidesteps, ducks and jumps.",
+  "description": "HIIT lane runner: dodge, jump, squat and kick with a voice coach. Calories for your profile.",
   "type": "game",
   "entry": "index.html",
-  "icon": "icon.svg?v=1.0.3",
-  "version": "1.0.3",
+  "icon": "icon.svg?v=2.0.0",
+  "version": "2.0.0",
   "scores": true,
   "config": {
-    "actionSeconds": 4,
-    "restSeconds": 2,
-    "voice": true
+    "speed": 1,
+    "restBonus": 0,
+    "warmupSeconds": 30,
+    "cooldownSeconds": 30,
+    "voice": true,
+    "sets": 2
   }
 }

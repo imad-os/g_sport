@@ -1,19 +1,61 @@
 # Motion Trail
 
-Version 1.0.3 | A guided 2D fitness game for My PC and desktop Chrome.
+**Version 2.0.0** · A HIIT lane-runner workout game for **My PC** (Samsung TV 2024+, Tizen 8) and desktop Chrome.
 
-Motion Trail is a three-lane obstacle runner with an animated character. Barriers approach down the track: side barriers leave a clearly marked open lane, overhead gates call for a duck, and low hurdles call for a jump. The runner animates through lane changes and jumps as you follow the real-world cue. A session has 5 stages with 4 levels each, with recovery breaks. No motion sensor or controller movement is required.
+Your athlete sprints down a three-lane road through a real-time 3D world (WebGL, with lighting, shadows, fog and textured terrain). Barriers, hurdles, laser gates and kick pads rush at you, and a voice coach calls each move a moment before it arrives. **You do the move for real** (side step, jump, squat, kick) and press the matching button on the remote, or switch to **Hands-free** and just follow the coach while the runner dodges by itself.
+
+Every stage is a real interval session: warm-up → work/rest rounds → cool-down, with music that drives during work and softens during recovery.
+
+## Features
+
+- **10 stages, 10 terrains**: Dawn Boulevard (city at sunrise), Harbor Lights (night port), Canyon Run (desert mesas), Neon District (night city), Glacier Pass (snowy peaks), Orbit Ring (space station), Forest Trail, Coastal Highway (sunset ocean), Volcano Ridge (lava fields) and Aurora Tundra (northern lights). Each one has its own road surface, props, skyline or mountains, sky, sun and fog. Each stage adds moves and speed, and stages unlock in order. The stage carousel shows each terrain live behind the menu.
+- **HIIT structure**: work/rest intervals set by fitness level (Beginner 20/40 s, Intermediate 30/30 s, Advanced 40/20 s), 6 to 12 rounds per stage, 6–14 minutes.
+- **Renderer**: 3D on WebGL; effects scale with the TV's quality tier (shadows and full-resolution textures on mid/high tiers). Without WebGL it falls back to a 2D renderer automatically (or set `"renderer": "2d"` in the owner config).
+- **Moves**: side step (left/right), jump, big jump, squat, front kick, plus jogging or marching in place between obstacles.
+- **Low-impact mode**: switched on automatically for a BMI of 30 or more, age 60 or more, or a beginner with a BMI of 27 or more (or chosen by hand). Jumps become *reach-ups* and big jumps become *knee lifts*; jump-type moves are at least 6 s apart; obstacles are spaced 35% further apart; the pace is 10% slower and every rest is 10 s longer.
+- **Calorie estimate** from sex, age, height, weight and fitness level: resting energy (Mifflin-St Jeor) × MET of each move (Compendium of Physical Activities, approximated). Shown live during play, per stage before you start, and in your lifetime total. These are estimates, not medical measurements.
+- **Female voice coach** in English, French, Spanish and Arabic: moves, countdowns, rounds, rest, halfway, last round, stage names, finish, encouragement.
+- **10 original HIIT tracks** (house, techno, electro, synthwave, drum & bass, trap, 96–174 BPM). They are composed in code and rendered on the device, so nothing big is downloaded. Choose one or let each stage pick its own.
+- Score, combos, energy orbs, accuracy, best combo; best score per stage; top-10 scores through My PC.
+- Interface in English, French, Spanish and Arabic (right to left).
 
 ## Controls
 
-- My PC / remote: arrows navigate the title and results screens; OK starts or continues. Back always opens My PC's pause menu.
-- Standalone Chrome: arrows and Enter/Space work the same way; Esc opens the standalone pause menu provided by the SDK.
-- During a workout, follow the prompt. You can take a break at any time with My PC's Back/pause menu.
+Everything works with the **arrows + OK**.
 
-Progress and best score are saved per My PC profile. English, French, Spanish and Arabic interface text is included. Short voice cues use Web Audio; Voice Guide announcements use the My PC SDK.
+| | Menus | During a workout (Remote mode) |
+|---|---|---|
+| ◀ ▶ | change a value | step left / right (change lane) |
+| ▲ | move up | jump (big jump / reach-up / knee lift, as cued) |
+| ▼ | move down | squat (hold to stay low) |
+| OK | select | kick |
+| Back | My PC pause menu (Resume, Restart stage, Quit to menu, Quit) | same |
 
-Runner animation: **Running and Jumping Boy Sprite Sheets** by bevouliin.com, from [OpenGameArt](https://opengameart.org/content/running-and-jumping-boy-sprite-sheets), released under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+Standalone in Chrome: arrows, **Enter** (OK) and **Esc** (pause).
 
-## Publish
+In **Hands-free** mode (Settings → Controls) the runner dodges by itself: put the remote down and just follow the coach.
 
-Enable GitHub Pages from **Settings → Pages → Deploy from a branch → main / root**. The installer address to paste is the published site root, `https://<user>.github.io/<repo>/`.
+## Settings, saves, config
+
+- Profile (sex, age, height, weight, fitness level, impact, units), settings and progress are saved per My PC profile with `MyPC.save`.
+- Owner config (App Store Manager → Config), all optional:
+  `speed` (0.6–1.6, default 1), `sets` (1–4 passes through a stage's round list, default 2), `restBonus` (extra rest seconds, 0–60), `warmupSeconds` and `cooldownSeconds` (10–120, default 30), `voice` (false turns the coach off).
+
+## Files
+
+- `index.html`: entry page; `js/game.js` (game, HUD, menus, 2D fallback renderer), `js/world3d.js` (3D world), `js/music.js` (music and sound effects), `js/i18n.js` (texts)
+- `lib/three.min.js`: three.js r158 (MIT licence, `lib/three-LICENSE.txt`)
+- `voice/<lang>.js`: coach voice for each language (one MP3 sprite each, about 0.5 MB)
+- `fonts/`: Barlow Condensed and Cairo (SIL Open Font License, see the OFL files)
+- `tools/`: scripts that generated the voice (`make_voice.py`, `build_voice.py`, `voice_lines.json`)
+
+## Credits and licences
+
+- Code, terrains, textures (painted in code), props and the athlete: original, made for this game. 3D engine: three.js (MIT).
+- Music: 10 original tracks generated by `js/music.js`.
+- Coach voice: generated with [Chatterbox Multilingual TTS](https://huggingface.co/ResembleAI/chatterbox) by Resemble AI (MIT licence), checked automatically with Whisper. To regenerate it: `python tools/make_voice.py tools/voice_lines.json out` then `python tools/build_voice.py out voice`.
+- Fonts: Barlow Condensed (Jeremy Tribby) and Cairo (Mohamed Gaber), SIL Open Font License 1.1.
+
+## Health note
+
+Clear some space around you, wear proper shoes, and stop if you feel pain, dizziness or shortness of breath. If you have a medical condition, check with a professional before starting. Calorie figures are estimates.
