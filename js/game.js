@@ -5,7 +5,7 @@
 (function () {
     'use strict';
 
-    var VERSION = '2.2.0';
+    var VERSION = '2.3.0';
     var W = 960, H = 540, STEP = 1000 / 60, DT = 1 / 60;
     var canvas, ctx, RS = 1, PR = 2, raf = 0, last = 0, acc = 0, running = false;
     var info = null, lang = 'en', rtl = false, t = MT_TXT.en, tier = 'high', fxFull = true;
@@ -412,7 +412,7 @@
         segIdx = 0; segT = 0; totalT = 0; playPhase = 'intro'; introT = 3.2;
         score = 0; combo = 0; bestCombo = 0; clears = 0; misses = 0; orbsGot = 0; kcal = 0; spawnT = 0; lastJumpSpawn = -99; plannedLane = 0;
         said.half = false; said.ten = false; said.cd = 0; said.pre = false; feedbackT = 0; oopsT = 0; newRecord = false;
-        hrBpm = 0; hrSum = 0; hrSecs = 0; hrMax = 0; hrKcalSecs = 0; duckHeld = false; intentType = ''; intentObs = null;
+        hrBpm = 0; hrSum = 0; hrSecs = 0; hrMax = 0; hrKcalSecs = 0; duckHeld = false; intentType = ''; intentObs = null; resetRunStats();
         seed = (Date.now() % 100000) + 1;
         screen = 'play';
         refreshUI();
@@ -578,15 +578,77 @@
         if (typeof MyPC.sensors === 'undefined' || !MyPC.sensors.setup) return;
         MyPC.sensors.setup({
             moves: MOTION_MOVES, define: MOTION_DEFINE,
-            profile: { age: profile.age, height: Math.round(profile.h), weight: Math.round(profile.w), phone_position: 'right hand' }
+            profile: { age: profile.age, height: Math.round(profile.h), weight: Math.round(profile.w), phone_position: 'right hand' },
+            metrics: { hz: 1 }
         });
     }
+    // phones as they were last reported ({ 1: mode | null, 2: ... }); a change shows a notice on the TV for a few seconds
+    var phoneModes = { 1: null, 2: null }, toastT = 0;
+    function controlName() { return phoneMotion ? t.phoneMotion : settings.ctrl === 1 ? t.handsFree : phoneModes[1] === 'pad' || phoneModes[2] === 'pad' ? t.phoneButtons : t.ctrlOpts[0]; }
     function phonePlayers(modes) {
-        var on = !!modes && (modes[1] === 'sensor-actions' || modes[2] === 'sensor-actions');
-        if (on === phoneMotion) return;
-        phoneMotion = on;
-        if (screen === 'play' && !world.demo) { handsFree = settings.ctrl === 1 && !phoneMotion; intentType = ''; intentObs = null; duckHeld = false; }
-        refreshUI();
+        modes = modes || {};
+        var news = '', p;
+        for (p = 1; p <= 2; p++) {
+            var was = phoneModes[p], now = typeof modes[p] === 'string' ? modes[p] : null;
+            if (was === now) continue;
+            phoneModes[p] = now;
+            news = (now ? (was ? t.phoneMode : t.phoneOn) : t.phoneOff).replace('%', p);
+        }
+        var on = phoneModes[1] === 'sensor-actions' || phoneModes[2] === 'sensor-actions';
+        if (on !== phoneMotion) {
+            phoneMotion = on;
+            if (screen === 'play' && !world.demo) { handsFree = settings.ctrl === 1 && !phoneMotion; intentType = ''; intentObs = null; duckHeld = false; }
+            refreshUI();
+        }
+        if (!on) runStats.on = false;
+        if (news) {
+            S.toast1 = news;
+            S.toast2 = t.controls + ': ' + controlName();
+            toastT = 4;
+            sfx('select');
+            say(S.toast1 + '. ' + S.toast2);
+        }
+    }
+    function drawToast() {
+        if (toastT <= 0) return;
+        var w = 520, x = W / 2 - w / 2, y = 150;
+        ctx.globalAlpha = clamp(toastT * 2, 0, 1);
+        panel(x, y, w, 76, 18, GLASS2, theme.accent, 3);
+        icon('phone', rtl ? x + w - 40 : x + 40, y + 38, 30, theme.accent);
+        text(S.toast1, rtl ? x + w - 76 : x + 76, y + 33, 22, WHITE, A('left'), 800);
+        text(S.toast2, rtl ? x + w - 76 : x + 76, y + 60, 18, theme.accent, A('left'), 700);
+        ctx.globalAlpha = 1;
+    }
+
+    /* running metrics from a phone in Motion moves mode (once a second): shown in a box during a workout.
+     * Distance and steps count from the start of the workout (the phone counts from its connection). */
+    var runStats = { on: false, at: 0, d0: -1, s0: -1, pace: '', speed: '', dist: '', steps: '' };
+    function resetRunStats() { runStats.d0 = -1; runStats.s0 = -1; }
+    function onMetrics(m) {
+        if (!m || typeof m !== 'object') return;
+        var imp = profile.units === 1, dist = +m.distance_m || 0, steps = +m.steps || 0, kmh = +m.speed_kmh || 0, pace = +m.pace_sec_per_km || 0;
+        if (screen !== 'play' || world.demo) { runStats.d0 = -1; return; }
+        if (runStats.d0 < 0 || dist < runStats.d0 || steps < runStats.s0) { runStats.d0 = dist; runStats.s0 = steps; }
+        var d = dist - runStats.d0, n = steps - runStats.s0;
+        if (imp) { pace *= 1.609344; kmh /= 1.609344; d /= 1609.344; }
+        runStats.pace = pace > 0 && pace < 3600 && kmh > 0.5 ? clock(Math.round(pace)) + (imp ? t.perMi : t.perKm) : '--';
+        runStats.speed = kmh.toFixed(1) + ' ' + (imp ? t.mph : t.kmh);
+        runStats.dist = imp ? d.toFixed(2) + ' ' + t.mi : d >= 1000 ? (d / 1000).toFixed(2) + ' ' + t.kmU : Math.round(d) + ' ' + t.mU;
+        runStats.steps = String(Math.max(0, Math.round(n)));
+        runStats.on = true; runStats.at = Date.now();
+    }
+    var RUN_ROWS = ['pace', 'speed', 'distance', 'steps'];
+    function drawRunStats() {
+        if (!runStats.on || !phoneMotion) return;
+        var lx = X(36), w = 290, x0 = rtl ? lx - w : lx, y = 132, i;
+        panel(x0, y, w, 132, 16, GLASS, LINE, 2);
+        ctx.globalAlpha = Date.now() - runStats.at > 5000 ? 0.5 : 1;
+        for (i = 0; i < 4; i++) {
+            var r = RUN_ROWS[i], yy = y + 30 + i * 28;
+            text(t[r], rtl ? x0 + w - 20 : x0 + 20, yy, 16, MUTED, A('left'), 700);
+            text(runStats[r === 'distance' ? 'dist' : r], rtl ? x0 + 20 : x0 + w - 20, yy, 21, WHITE, A('right'), 800);
+        }
+        ctx.globalAlpha = 1;
     }
     function armIntent(type, kinds, now) {
         var o = nextOf(kinds, 40);
@@ -651,6 +713,7 @@
         if (screen === 'play') updatePlay();
         else if (world.demo) updateWorld();
         updateFx();
+        if (toastT > 0) toastT -= DT;
         menuAnim += DT;
     }
 
@@ -995,6 +1058,7 @@
             case 'gear': ctx.beginPath(); ctx.arc(x, y, s * 0.36, 0, 6.2832); ctx.stroke(); for (var j = 0; j < 8; j++) { var ga = j * Math.PI / 4; ctx.beginPath(); ctx.moveTo(x + Math.cos(ga) * s * 0.4, y + Math.sin(ga) * s * 0.4); ctx.lineTo(x + Math.cos(ga) * s * 0.62, y + Math.sin(ga) * s * 0.62); ctx.stroke(); } break;
             case 'music': ctx.beginPath(); ctx.arc(x - s * 0.25, y + s * 0.35, s * 0.2, 0, 6.2832); ctx.fill(); ctx.fillRect(x - s * 0.1, y - s * 0.6, s * 0.12, s * 0.95); ctx.fillRect(x - s * 0.1, y - s * 0.6, s * 0.5, s * 0.14); break;
             case 'trophy': ctx.beginPath(); ctx.moveTo(x - s * 0.45, y - s * 0.6); ctx.lineTo(x + s * 0.45, y - s * 0.6); ctx.quadraticCurveTo(x + s * 0.45, y + s * 0.1, x, y + s * 0.15); ctx.quadraticCurveTo(x - s * 0.45, y + s * 0.1, x - s * 0.45, y - s * 0.6); ctx.fill(); ctx.fillRect(x - s * 0.08, y + s * 0.1, s * 0.16, s * 0.3); ctx.fillRect(x - s * 0.3, y + s * 0.4, s * 0.6, s * 0.15); break;
+            case 'phone': ctx.lineWidth = Math.max(2, s * 0.1); rrect(x - s * 0.32, y - s * 0.6, s * 0.64, s * 1.2, s * 0.12); ctx.stroke(); ctx.fillRect(x - s * 0.1, y + s * 0.42, s * 0.2, s * 0.06); break;
             case 'target': ctx.beginPath(); ctx.arc(x, y, s * 0.55, 0, 6.2832); ctx.stroke(); ctx.beginPath(); ctx.arc(x, y, s * 0.2, 0, 6.2832); ctx.fill(); break;
         }
     }
@@ -1043,6 +1107,7 @@
         icon('star', rx0 + 34, 100, 22, theme.accent);
         text(num(score), rx0 + 56, 108, 26, WHITE, 'left', 800);
         if (combo >= 5) text(MULT[1 + Math.min(4, (combo / 5) | 0)], rx0 + w2 - 20, 108, 26, theme.accent, 'right', 800);
+        drawRunStats();
         // heart-rate card (only while a sensor or the test signal sends readings)
         if (hrBpm) {
             var ef = MTHeart.effort(hrBpm, profile.age), zc = ef < 0.6 ? '#6fb4ff' : ef < 0.7 ? '#5fd38d' : ef < 0.8 ? '#ffd27a' : ef < 0.9 ? '#ff8a3d' : '#ff4d5e';
@@ -1490,7 +1555,7 @@
     }
     var RES_ICONS = ['star', 'flame', 'clock', 'target', 'bolt', 'orb'];
     // every string the menus and HUD show is built here, outside the frame loop
-    var S = { round: '', stageLine: '', restNext: '', intro: '', titleStage: '', titleStats: null, stageInfo: [], stageKcal: [], stageBest: [], stageNum: [], prof: [], set: [], bmi: '', wr: '', perMin: '', perStage: '', low: false, res: [], resLabels: [], resNote: '', hrState: '', hrMsg: '' };
+    var S = { round: '', stageLine: '', restNext: '', intro: '', titleStage: '', titleStats: null, stageInfo: [], stageKcal: [], stageBest: [], stageNum: [], prof: [], set: [], bmi: '', wr: '', perMin: '', perStage: '', low: false, res: [], resLabels: [], resNote: '', hrState: '', hrMsg: '', toast1: '', toast2: '' };
     function refreshUI() {
         var i, low = lowImpact(), wr = WORK_REST[profile.fit];
         S.low = low;
@@ -1558,6 +1623,7 @@
         else if (screen === 'custom') drawCustom();
         else if (screen === 'results') drawResults();
         else if (screen === 'heart') drawHeart();
+        drawToast();
     }
 
     function frame(ts) {
@@ -1844,6 +1910,8 @@
             if (typeof MyPC.sensors !== 'undefined' && MyPC.sensors.on) {
                 MyPC.sensors.on('action', motionAction);
                 MyPC.sensors.on('players', phonePlayers);
+                MyPC.sensors.on('config', function () { phonePlayers(MyPC.sensors.players()); });   // the phones already connected when the game opens
+                MyPC.sensors.on('metrics', onMetrics);
                 phonePlayers(MyPC.sensors.players && MyPC.sensors.players());
             }
             fxFull = settings.fx === 2 || (settings.fx === 0 && tier !== 'low');
