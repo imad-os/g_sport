@@ -1,6 +1,6 @@
 # Motion Trail
 
-**Version 2.1.0** · A HIIT lane-runner workout game for **My PC** (Samsung TV 2024+, Tizen 8) and desktop Chrome.
+**Version 2.2.0** · A HIIT lane-runner workout game for **My PC** (Samsung TV 2024+, Tizen 8) and desktop Chrome.
 
 Your athlete sprints down a three-lane road through a real-time 3D world (WebGL, with lighting, shadows, fog and textured terrain). Barriers, hurdles, laser gates and kick pads rush at you, and a voice coach calls each move a moment before it arrives. **You do the move for real** (side step, jump, squat, kick) and press the matching button on the remote, or switch to **Hands-free** and just follow the coach while the runner dodges by itself.
 
@@ -14,6 +14,9 @@ Every stage is a real interval session: warm-up → work/rest rounds → cool-do
 - **Renderer**: 3D on WebGL; effects scale with the TV's quality tier (shadows and full-resolution textures on mid/high tiers). Without WebGL it falls back to a 2D renderer automatically (or set `"renderer": "2d"` in the owner config).
 - **Moves**: side step (left/right), jump, big jump, squat, front kick, plus jogging or marching in place between obstacles.
 - **Low-impact mode**: switched on automatically for a BMI of 30 or more, age 60 or more, or a beginner with a BMI of 27 or more (or chosen by hand). Jumps become *reach-ups* and big jumps become *knee lifts*; jump-type moves are at least 6 s apart; obstacles are spaced 35% further apart; the pace is 10% slower and every recovery is 5 s longer.
+- **Live heart rate** (Settings → Heart rate): on the TV, My PC reads any Bluetooth heart-rate sensor (chest straps such as Polar, Garmin, Wahoo, Decathlon; arm bands; watches that broadcast their heart rate). Search, pick your sensor with the remote, and it reconnects by itself next time. During a workout the HUD shows your bpm and the share of your age-predicted maximum (colour-coded zones), and the results show average and maximum heart rate. A **Simulate heart rate** entry tests it without a sensor.
+- **Calories from heart rate**: while a sensor reads 90 bpm or more, calories come from the Keytel et al. (2005) heart-rate equation with your sex, age and weight; otherwise (or without a sensor) the profile estimate below is used.
+- **Phone motion controller**: on a phone, My PC → Game controller → **Motion moves**, phone in your right hand. Your real side steps, jumps and squats steer the runner, and a forward punch breaks the kick pads. A move done while its obstacle is coming is played at the right moment; with no phone, nothing changes.
 - **Calorie estimate** from sex, age, height, weight and fitness level: resting energy (Mifflin-St Jeor) × MET of each move (Compendium of Physical Activities, approximated). Shown live during play, per stage before you start, and in your lifetime total. These are estimates, not medical measurements.
 - **Female voice coach** in English, French, Spanish and Arabic: moves, countdowns, rounds, rest, halfway, last round, stage names, finish, encouragement.
 - **10 original HIIT tracks** (house, techno, electro, synthwave, drum & bass, trap, 96–174 BPM). They are composed in code and rendered on the device, so nothing big is downloaded. Choose one or let each stage pick its own.
@@ -34,17 +37,19 @@ Everything works with the **arrows + OK**.
 
 Standalone in Chrome: arrows, **Enter** (OK) and **Esc** (pause).
 
+With a phone in **Motion moves** mode connected, your real moves drive the runner (the HUD says PHONE MOTION).
+
 **Hands-free** is the default (Settings → Controls): the runner dodges by itself, so you can put the remote down and just follow the coach. Choose **Remote** to press the arrows and OK yourself.
 
 ## Settings, saves, config
 
 - Profile (sex, age, height, weight, fitness level, impact, units), settings and progress are saved per My PC profile with `MyPC.save`.
 - Owner config (App Store Manager → Config), all optional:
-  `speed` (0.6–1.6, default 1), `sets` (1–4 passes through a stage's round list, default 2), `restBonus` (extra rest seconds, 0–60), `warmupSeconds` and `cooldownSeconds` (10–120, default 30), `voice` (false turns the coach off).
+  `speed` (0.6–1.6, default 1), `sets` (1–4 passes through a stage's round list, default 2), `restBonus` (extra rest seconds, 0–60), `warmupSeconds` and `cooldownSeconds` (10–120, default 30), `voice` (false turns the coach off), `heartRate` (must be `true` for My PC to let the game use heart-rate sensors).
 
 ## Files
 
-- `index.html`: entry page; `js/game.js` (game, HUD, menus, 2D fallback renderer), `js/world3d.js` (3D world), `js/music.js` (music and sound effects), `js/i18n.js` (texts)
+- `index.html`: entry page; `js/game.js` (game, HUD, menus, 2D fallback renderer), `js/world3d.js` (3D world), `js/music.js` (music and sound effects), `js/i18n.js` (texts), `js/hr.js` (heart-rate sensor through `MyPC.bluetooth`, heart-rate calories)
 - `lib/three.min.js`: three.js r158 (MIT licence, `lib/three-LICENSE.txt`)
 - `voice/<lang>.js`: coach voice for each language (one MP3 sprite each, about 0.5 MB)
 - `fonts/`: Barlow Condensed and Cairo (SIL Open Font License, see the OFL files)

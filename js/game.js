@@ -5,7 +5,7 @@
 (function () {
     'use strict';
 
-    var VERSION = '2.1.0';
+    var VERSION = '2.2.0';
     var W = 960, H = 540, STEP = 1000 / 60, DT = 1 / 60;
     var canvas, ctx, RS = 1, PR = 2, raf = 0, last = 0, acc = 0, running = false;
     var info = null, lang = 'en', rtl = false, t = MT_TXT.en, tier = 'high', fxFull = true;
@@ -14,7 +14,7 @@
 
     /* ---------------- saved data ---------------- */
     var profile = { sex: 0, age: 35, h: 168, w: 72, fit: 0, imp: 0, units: 0 };
-    var settings = { ctrl: 1, track: -1, mvol: 2, coach: 1, fx: 0, cv: 2 };
+    var settings = { ctrl: 1, track: -1, mvol: 2, coach: 1, fx: 0, cv: 2, hrAuto: 0 }; // hrAuto: reconnect the last heart-rate sensor at start
     // custom workout: moves in CUSTOM_MOVES order, work/rest seconds, rounds, terrain (stage) index
     var CUSTOM_MOVES = ['side', 'jump', 'squat', 'kick', 'hjump'], PRESETS = [[20, 10], [30, 10], [40, 20], [45, 15], [60, 10]];
     var custom = { pre: 4, work: 60, rest: 10, rounds: 8, moves: [1, 1, 1, 1, 0], terrain: 0 }, customRun = false;
@@ -362,6 +362,7 @@
     for (i0 = 0; i0 < 22; i0++) LINES.push({ a: 0, r: 0, v: 0, len: 0 });
     var PLUS = { 20: '+20', 100: '+100', 150: '+150', 200: '+200', 250: '+250', 300: '+300', 400: '+400', 450: '+450', 500: '+500', 600: '+600', 750: '+750' };
     var MULT = ['', 'x1', 'x2', 'x3', 'x4', 'x5'];
+    var PCT = []; for (var pc = 0; pc <= 120; pc++) PCT[pc] = pc + '%';
 
     function spawnPart(x, y, vx, vy, life, size, col) {
         for (var i = 0; i < PARTS.length; i++) if (!PARTS[i].on) { var p = PARTS[i]; p.on = true; p.x = x; p.y = y; p.vx = vx; p.vy = vy; p.life = life; p.max = life; p.size = size; p.col = col; return; }
@@ -377,6 +378,10 @@
     var score = 0, combo = 0, bestCombo = 0, clears = 0, misses = 0, orbsGot = 0, kcal = 0, spawnT = 0, lastJumpSpawn = -99, plannedLane = 0, lastMove = '', moveRepeat = 0, obsId = 0;
     var cue = null, cueT = 0, flash = 0, shake = 0, lowMode = false, handsFree = false, said = { half: false, ten: false, cd: 0, pre: false };
     var feedbackT = 0, oopsT = 0, introT = 0, newRecord = false, resultSel = 0, segKcalMet = 3, segFlash = 0;
+    // heart rate during a run (MTHeart, js/hr.js): bpm shown on the HUD, average / maximum, seconds of kcal from heart rate
+    var hrBpm = 0, hrSum = 0, hrSecs = 0, hrMax = 0, hrKcalSecs = 0;
+    // phone controller in "Motion moves" mode (MyPC.sensors): the player's real moves drive the runner
+    var phoneMotion = false, duckHeld = false, intentType = '', intentObs = null;
 
     function resetRunner() { R.lane = 0; R.x = 0; R.y = 0; R.vy = 0; R.act = 'run'; R.at = 0; R.stumble = 0; R.lean = 0; camX = 0; }
     function clearWorld() {
@@ -400,13 +405,14 @@
         level = li; if (!customRun) progress.last = li;
         world.demo = false; clearWorld(); resetRunner();
         setTheme(LEVELS[li].theme);
-        lowMode = lowImpact(); handsFree = settings.ctrl === 1;
+        lowMode = lowImpact(); handsFree = settings.ctrl === 1 && !phoneMotion;
         timeline = buildTimeline(li); totalLen = timelineLength(timeline);
         world.base = BASE_SPEED[profile.fit] * LEVELS[li].speed * (lowMode ? 0.9 : 1) * cfg.speed;
         world.speed = 0; world.target = 0; world.dist = 0;
         segIdx = 0; segT = 0; totalT = 0; playPhase = 'intro'; introT = 3.2;
         score = 0; combo = 0; bestCombo = 0; clears = 0; misses = 0; orbsGot = 0; kcal = 0; spawnT = 0; lastJumpSpawn = -99; plannedLane = 0;
         said.half = false; said.ten = false; said.cd = 0; said.pre = false; feedbackT = 0; oopsT = 0; newRecord = false;
+        hrBpm = 0; hrSum = 0; hrSecs = 0; hrMax = 0; hrKcalSecs = 0; duckHeld = false; intentType = ''; intentObs = null;
         seed = (Date.now() % 100000) + 1;
         screen = 'play';
         refreshUI();
@@ -522,7 +528,7 @@
         for (var i = 0; i < OBS.length; i++) { var o = OBS[i]; if (o.on && !o.done && o.z > -0.5 && o.z < maxZ && types.indexOf(o.type) >= 0 && (!best || o.z < best.z)) best = o; }
         return best;
     }
-    var JUMPERS = ['hurdle', 'tall'], PADS = ['pad'], ANY = ['block', 'hurdle', 'tall', 'bar', 'pad'];
+    var JUMPERS = ['hurdle', 'tall'], PADS = ['pad'], BARS = ['bar'], ANY = ['block', 'hurdle', 'tall', 'bar', 'pad'];
     function doLane(d) {
         var nl = clamp(R.lane + d, -1, 1);
         if (nl === R.lane) return;
@@ -557,6 +563,55 @@
         else if (o.type === 'tall') { if (tta < 0.46 && R.act !== 'hjump') doJump(); }
         else if (o.type === 'bar') { if (tta < 0.28 && R.act !== 'squat') doSquat(); }
         else if (o.type === 'pad') { if (o.z < 2.8 && !o.broken) doKick(); }
+    }
+
+    /* ---------------- phone motion (MyPC.sensors, "Motion moves" mode on the phone) ----------------
+     * A real move comes the moment the player does it, often a little early for the obstacle. A jump, squat or
+     * kick done while its obstacle is near is kept as an intent for that obstacle and played at the right time
+     * (like the hands-free runner); with no such obstacle near, the runner does the move at once.
+     * Side steps change lane at once. Nothing moves the runner unless the player really moved. */
+    var MOTION_MOVES = ['LEFT', 'RIGHT', 'JUMP', 'DUCK', 'DUCK_END', 'KICK'];
+    // a punch or kick forward: the phone in the right hand thrusts towards the TV
+    var MOTION_DEFINE = { KICK: { signal: 'forward', above: 7, for_ms: 40, cooldown_ms: 600, group: 'fwd' } };
+    var INTENT_TTA = 2.6;
+    function setupSensors() {
+        if (typeof MyPC.sensors === 'undefined' || !MyPC.sensors.setup) return;
+        MyPC.sensors.setup({
+            moves: MOTION_MOVES, define: MOTION_DEFINE,
+            profile: { age: profile.age, height: Math.round(profile.h), weight: Math.round(profile.w), phone_position: 'right hand' }
+        });
+    }
+    function phonePlayers(modes) {
+        var on = !!modes && (modes[1] === 'sensor-actions' || modes[2] === 'sensor-actions');
+        if (on === phoneMotion) return;
+        phoneMotion = on;
+        if (screen === 'play' && !world.demo) { handsFree = settings.ctrl === 1 && !phoneMotion; intentType = ''; intentObs = null; duckHeld = false; }
+        refreshUI();
+    }
+    function armIntent(type, kinds, now) {
+        var o = nextOf(kinds, 40);
+        if (o && o.z / Math.max(1, world.speed) <= INTENT_TTA) { intentType = type; intentObs = o; }
+        else now();
+    }
+    function motionAction(ev) {
+        var a = ev && ev.action;
+        if (!phoneMotion) phoneMotion = true;
+        if (a === 'DUCK_END') { duckHeld = false; return; }
+        if (screen !== 'play' || world.demo || playPhase !== 'run' || paused) return;
+        if (handsFree) { handsFree = settings.ctrl === 1 && !phoneMotion; if (handsFree) return; }
+        if (a === 'LEFT') doLane(-1);
+        else if (a === 'RIGHT') doLane(1);
+        else if (a === 'JUMP') armIntent('jump', JUMPERS, doJump);
+        else if (a === 'DUCK') { duckHeld = true; armIntent('squat', BARS, doSquat); }
+        else if (a === 'KICK') armIntent('kick', PADS, doKick);
+    }
+    function motionIntent() {
+        var o = intentObs;
+        if (!o || !o.on || o.done) { intentType = ''; intentObs = null; return; }
+        var tta = o.z / Math.max(1, world.speed);
+        if (intentType === 'jump' && tta < (o.type === 'tall' ? 0.46 : 0.3)) { doJump(); intentType = ''; intentObs = null; }
+        else if (intentType === 'squat' && tta < 0.28) { doSquat(); intentType = ''; intentObs = null; }
+        else if (intentType === 'kick' && o.z < 2.8) { doKick(); intentType = ''; intentObs = null; }
     }
 
     function clearObstacle(o, pts) {
@@ -606,7 +661,10 @@
             if (introT <= 0) { playPhase = 'run'; enterSegment(); }
         } else if (playPhase === 'run') {
             segT += DT; totalT += DT;
-            kcal += segKcalMet * rmrPerSec() * DT;
+            hrBpm = MTHeart.fresh(Date.now());
+            var hk = MTHeart.kcalPerSec(hrBpm, profile.sex === 1, profile.w, profile.age), mk = segKcalMet * rmrPerSec();
+            if (hrBpm) { hrSum += hrBpm * DT; hrSecs += DT; if (hrBpm > hrMax) hrMax = hrBpm; }
+            if (hk > 0) { kcal += Math.max(hk, MET.rest[0] * rmrPerSec()) * DT; hrKcalSecs += DT; } else kcal += mk * DT;
             var s = seg(), rem = segRemain();
             if (s.type === 'work' && s.dur >= 25 && !said.ten && rem <= 10) { said.ten = true; voice('tensec', 1); }
             var nextWork = segIdx + 1 < timeline.length && timeline[segIdx + 1].type === 'work';
@@ -631,6 +689,7 @@
         var dz = world.speed * DT;
         world.dist += dz;
         if (world.demo || handsFree) autopilot();
+        else if (intentType) motionIntent();
         updateSpawns();
 
         // runner
@@ -640,7 +699,7 @@
         if (R.stumble > 0) R.stumble -= DT;
         if (R.act !== 'run') {
             R.at += DT;
-            if (R.act === 'squat' && R.at >= R.adur && !world.demo && !handsFree && MyPC.isDown('down')) R.at = R.adur - 0.01;
+            if (R.act === 'squat' && R.at >= R.adur && !world.demo && !handsFree && (MyPC.isDown('down') || duckHeld)) R.at = R.adur - 0.01;
             if (R.at >= R.adur) {
                 if (R.act === 'jump' || R.act === 'hjump') { R.landed = 0.25; sfx('land'); dust(); }
                 R.act = 'run'; R.at = 0;
@@ -970,8 +1029,8 @@
         ctx.globalAlpha = 1;
         var ph = bx + bw * clamp(totalT / totalLen, 0, 1);
         ctx.fillStyle = WHITE; ctx.beginPath(); ctx.arc(ph, by + 26, 7, 0, 6.2832); ctx.fill();
-        if (lowMode || handsFree) {
-            var chip = handsFree ? t.handsFree : t.lowImpact;
+        if (lowMode || handsFree || phoneMotion) {
+            var chip = phoneMotion ? t.phoneMotion : handsFree ? t.handsFree : t.lowImpact;
             panel(W / 2 - 80, by + 42, 160, 30, 15, 'rgba(255,255,255,0.08)', LINE, 1.5);
             text(chip, W / 2, by + 63, 17, MUTED, 'center', 700);
         }
@@ -984,8 +1043,18 @@
         icon('star', rx0 + 34, 100, 22, theme.accent);
         text(num(score), rx0 + 56, 108, 26, WHITE, 'left', 800);
         if (combo >= 5) text(MULT[1 + Math.min(4, (combo / 5) | 0)], rx0 + w2 - 20, 108, 26, theme.accent, 'right', 800);
+        // heart-rate card (only while a sensor or the test signal sends readings)
+        if (hrBpm) {
+            var ef = MTHeart.effort(hrBpm, profile.age), zc = ef < 0.6 ? '#6fb4ff' : ef < 0.7 ? '#5fd38d' : ef < 0.8 ? '#ffd27a' : ef < 0.9 ? '#ff8a3d' : '#ff4d5e';
+            var beat = 1 + Math.max(0, Math.sin(menuAnim * 6.2832 * hrBpm / 60)) * 0.18;
+            panel(rx0, 132, w2, 56, 16, GLASS, LINE, 2);
+            icon('heart', rx0 + 34, 160, 24 * beat, zc);
+            text(num(hrBpm), rx0 + 56, 172, 30, WHITE, 'left', 800);
+            text(t.bpm, rx0 + 56 + (hrBpm >= 100 ? 54 : 38), 172, 16, MUTED, 'left', 700);
+            text(PCT[Math.round(ef * 100)] || '', rx0 + w2 - 20, 170, 20, zc, 'right', 800);
+        }
         // cue card
-        if (cue && !handsFree) drawCue(true);
+        if (cue && !handsFree) drawCue(!phoneMotion);
         else if (cue && handsFree) drawCue(false);
         // base movement pill
         if (playPhase === 'run' && s.type !== 'rest' && !(cue && cue.key)) {
@@ -1217,7 +1286,7 @@
         for (var j = 0; j < lines.length; j++) text(lines[j], x, y + j * lh, px, col, A('left'), 600);
     }
 
-    var SETTING_ROWS = ['controls', 'music', 'musicVol', 'coach', 'effects', 'done'];
+    var SETTING_ROWS = ['controls', 'heart', 'music', 'musicVol', 'coach', 'effects', 'done'];
     function settingValue(r) {
         switch (r) {
             case 'controls': return t.ctrlOpts[settings.ctrl];
@@ -1225,8 +1294,83 @@
             case 'musicVol': return t.volOpts[settings.mvol];
             case 'coach': return t.onOff[settings.coach];
             case 'effects': return t.effOpts[settings.fx];
+            case 'heart': {
+                var h = MTHeart.st;
+                if (!h.hosted) return t.hrTvOnly;
+                if (!h.allowed) return t.hrDenied;
+                if (h.state === 'test') return t.hrTest;
+                if (MTHeart.live()) return (h.device || t.hrSensor).toUpperCase();
+                return MTHeart.busy() ? t.hrSt[h.state] || t.hrSt.connecting : t.hrOff;
+            }
         }
         return '';
+    }
+
+    /* ---------------- heart-rate sensor screen (Settings > Heart rate) ---------------- */
+    var HEART_ITEMS = [], heartSel = 0, hrAutoDone = false, started = false;
+    function refreshHeart() {
+        var h = MTHeart.st, items = [], i;
+        if (MTHeart.usable()) {
+            items.push({ k: 'scan', label: h.state === 'scanning' ? t.hrScanning : t.hrScan });
+            for (i = 0; i < h.devices.length; i++) items.push({ k: 'dev', id: h.devices[i].id, label: h.devices[i].name + (MTHeart.live() && h.device === h.devices[i].name ? '  · ' + t.hrSt.connected : '') });
+            if (h.last && !MTHeart.live()) items.push({ k: 'last', label: t.hrLast + ' · ' + h.last.name });
+            items.push(h.state === 'test' ? { k: 'stopTest', label: t.hrTestOff } : { k: 'test', label: t.hrTestOn });
+            if (MTHeart.live() && h.state !== 'test') items.push({ k: 'off', label: t.hrDisconnect });
+        }
+        items.push({ k: 'back', label: t.back });
+        HEART_ITEMS = items; heartSel = clamp(heartSel, 0, items.length - 1);
+        S.hrState = t.hrSt[h.state] || '';
+        S.hrMsg = !h.hosted ? t.hrNoTv : !h.allowed ? t.hrNotAllowed
+            : h.state === 'no-contact' ? t.hrContact
+                : h.reason === 'powered-off' && !MTHeart.live() ? t.hrBtOff
+                    : !h.ble && h.reason && h.reason !== 'available' && !MTHeart.live() ? t.hrNoBle
+                        : h.searched && !h.devices.length && h.state === 'off' ? t.hrNone
+                            : MTHeart.live() ? t.hrNote : t.hrSub;
+        var hi = SETTING_ROWS.indexOf('heart');
+        if (S.set.length > hi) S.set[hi] = settingValue('heart');
+    }
+    function onHeartChange() {
+        if (MTHeart.st.state === 'connected' && settings.hrAuto !== 1) { settings.hrAuto = 1; MyPC.save('settings', settings); }
+        tryAutoHeart();
+        if (screen !== 'play') refreshHeart();      // readings during a run only feed the HUD (no strings to rebuild)
+    }
+    // the sensor connected on an earlier day comes back by itself (a scan for that one sensor, no list)
+    function tryAutoHeart() {
+        if (hrAutoDone || !started || settings.hrAuto !== 1 || !MTHeart.usable() || !MTHeart.st.last || MTHeart.live() || MTHeart.busy()) return;
+        hrAutoDone = true; MTHeart.reconnectLast(true);
+    }
+    function openHeart() { screen = 'heart'; heartSel = 0; refreshHeart(); say(t.hrTitle + '. ' + S.hrMsg); if (MTHeart.usable()) MTHeart.probe(); }
+    function heartInput(ok, dir) {
+        if (dir) { heartSel = clamp(heartSel + dir, 0, HEART_ITEMS.length - 1); sfx('move'); say(HEART_ITEMS[heartSel].label); }
+        if (!ok) return;
+        var it = HEART_ITEMS[heartSel];
+        sfx('select');
+        if (it.k === 'back') { screen = 'settings'; MyPC.save('settings', settings); refreshUI(); return; }
+        if (it.k === 'scan') { MTHeart.scan(); say(t.hrScanning); }
+        else if (it.k === 'dev') { MTHeart.connect(it.id); say(t.hrSt.connecting); }
+        else if (it.k === 'last') { MTHeart.reconnectLast(false); say(t.hrSt.connecting); }
+        else if (it.k === 'test') MTHeart.startTest();
+        else if (it.k === 'stopTest' || it.k === 'off') { settings.hrAuto = 0; MyPC.save('settings', settings); MTHeart.disconnect(); }
+        refreshHeart();
+    }
+    function drawHeart() {
+        ctx.fillStyle = 'rgba(4,8,18,0.82)'; ctx.fillRect(0, 0, W, H);
+        text(t.hrTitle, X(70), 80, 44, WHITE, A('left'), 800);
+        var lx = rtl ? W - 110 - 420 : 110, i;
+        for (i = 0; i < HEART_ITEMS.length && i < 9; i++) {
+            var y = 118 + i * 50, on = heartSel === i;
+            focusBox(lx, y, 420, 44, 12, on, theme.accent);
+            text(HEART_ITEMS[i].label, rtl ? lx + 400 : lx + 20, y + 30, 20, on ? WHITE : MUTED, A('left'), 700);
+        }
+        var px = rtl ? 110 : W - 110 - 320, live = MTHeart.live(), bpm = MTHeart.fresh(Date.now());
+        panel(px, 118, 320, 220, 18, GLASS, LINE, 2);
+        var beat = bpm ? 1 + Math.max(0, Math.sin(menuAnim * 6.2832 * bpm / 60)) * 0.15 : 1;
+        icon('heart', px + 160, 178, 56 * beat, live ? '#ff4d5e' : MUTED);
+        text(bpm ? num(bpm) : '--', px + 160, 270, 64, WHITE, 'center', 800);
+        text(t.bpm, px + 160, 298, 18, MUTED, 'center', 700);
+        text(S.hrState, px + 160, 326, 18, live ? theme.accent : MUTED, 'center', 700);
+        wrap(S.hrMsg, rtl ? px + 320 : px, 372, 320, 26, 18, MUTED);
+        hints(t.hint, 520);
     }
     /* ---------------- custom workout ---------------- */
     var CUSTOM_ROWS = ['preset', 'workTime', 'restTime', 'rounds', 'moves', 'terrain', 'go'], custSel = 0, moveSel = 0, goSel = 0;
@@ -1310,15 +1454,16 @@
         text(t.settingsTitle, X(70), 80, 44, WHITE, A('left'), 800);
         var lx = 150;
         for (var i = 0; i < SETTING_ROWS.length; i++) {
-            var r = SETTING_ROWS[i], y = 120 + i * 58, on = setSel === i;
-            if (r === 'done') { focusBox(lx + 180, y + 8, 300, 48, 14, on, theme.accent); text(t.done, W / 2, y + 41, 24, WHITE, 'center', 800); continue; }
-            focusBox(lx, y, 660, 48, 14, on, theme.accent);
-            text(t[r], rtl ? lx + 640 : lx + 22, y + 33, 21, on ? WHITE : MUTED, A('left'), 700);
+            var r = SETTING_ROWS[i], y = 108 + i * 52, on = setSel === i;
+            if (r === 'done') { focusBox(lx + 180, y + 6, 300, 44, 14, on, theme.accent); text(t.done, W / 2, y + 37, 24, WHITE, 'center', 800); continue; }
+            focusBox(lx, y, 660, 44, 14, on, theme.accent);
+            text(t[r], rtl ? lx + 640 : lx + 22, y + 30, 21, on ? WHITE : MUTED, A('left'), 700);
             var vx = rtl ? lx + 180 : lx + 480;
-            text(S.set[i], vx, y + 34, 23, WHITE, 'center', 800);
-            if (on) { ctx.fillStyle = theme.accent; tri(vx - 165, y + 24, 8, 3); tri(vx + 165, y + 24, 8, 1); }
+            text(S.set[i], vx, y + 31, 23, WHITE, 'center', 800);
+            if (on) { ctx.fillStyle = theme.accent; tri(vx - 165, y + 22, 8, 3); tri(vx + 165, y + 22, 8, 1); }
         }
-        text(t.ctrlHelp[settings.ctrl], W / 2, 478, 20, theme.accent, 'center', 600);
+        var help = SETTING_ROWS[setSel] === 'heart' ? t.hrHelp : phoneMotion ? t.phoneHelp : t.ctrlHelp[settings.ctrl];
+        text(help, W / 2, 486, 19, theme.accent, 'center', 600);
         hints(t.hintLR, 520);
     }
 
@@ -1341,11 +1486,11 @@
             focusBox(bx, 432, bw, 54, 14, resultSel === j, theme.accent);
             text(t[btns[j]], bx + bw / 2, 468, 24, WHITE, 'center', 800);
         }
-        text(t.estNote, W / 2, 516, 16, MUTED, 'center', 600);
+        text(S.resNote, W / 2, 516, 16, MUTED, 'center', 600);
     }
     var RES_ICONS = ['star', 'flame', 'clock', 'target', 'bolt', 'orb'];
     // every string the menus and HUD show is built here, outside the frame loop
-    var S = { round: '', stageLine: '', restNext: '', intro: '', titleStage: '', titleStats: null, stageInfo: [], stageKcal: [], stageBest: [], stageNum: [], prof: [], set: [], bmi: '', wr: '', perMin: '', perStage: '', low: false, res: [], resLabels: [] };
+    var S = { round: '', stageLine: '', restNext: '', intro: '', titleStage: '', titleStats: null, stageInfo: [], stageKcal: [], stageBest: [], stageNum: [], prof: [], set: [], bmi: '', wr: '', perMin: '', perStage: '', low: false, res: [], resLabels: [], resNote: '', hrState: '', hrMsg: '' };
     function refreshUI() {
         var i, low = lowImpact(), wr = WORK_REST[profile.fit];
         S.low = low;
@@ -1379,6 +1524,8 @@
     }
     function refreshResults() {
         S.res = [String(score), String(Math.round(kcal)), clock(totalLen), (clears + misses ? Math.round(100 * clears / (clears + misses)) : 100) + '%', String(bestCombo), String(orbsGot)];
+        var hrLine = hrSecs >= 10 ? t.hrAvg + ' ' + Math.round(hrSum / hrSecs) + ' · ' + t.hrMax + ' ' + hrMax + ' ' + t.bpm + '   ·   ' : '';
+        S.resNote = hrLine + (hrKcalSecs >= totalLen * 0.5 ? t.hrNote : t.estNote);
     }
     var BTN_NEXT = ['nextStage', 'replay', 'menu'], BTN_LAST = ['replay', 'menu'];
     function resultButtons() { return !customRun && level < NL - 1 ? BTN_NEXT : BTN_LAST; }
@@ -1410,6 +1557,7 @@
         else if (screen === 'settings') drawSettings();
         else if (screen === 'custom') drawCustom();
         else if (screen === 'results') drawResults();
+        else if (screen === 'heart') drawHeart();
     }
 
     function frame(ts) {
@@ -1598,14 +1746,17 @@
                 if (rtl) lr = -lr;
                 changeProfile(row, lr, repeat); sfx('move'); say(profileValue(row));
             }
-            if (ok && row === 'done') { MyPC.save('profile', profile); needProfile = false; MyPC.save('hasProfile', true); screen = 'title'; sfx('select'); }
+            if (ok && row === 'done') { MyPC.save('profile', profile); setupSensors(); needProfile = false; MyPC.save('hasProfile', true); screen = 'title'; sfx('select'); }
         } else if (screen === 'custom') {
             customInput(ok, dir, action === 'left' ? -1 : action === 'right' ? 1 : 0, repeat);
         } else if (screen === 'settings') {
             if (dir) { setSel = clamp(setSel + dir, 0, SETTING_ROWS.length - 1); sfx('move'); sayRow(SETTING_ROWS[setSel], settingValue(SETTING_ROWS[setSel])); }
             var sr = SETTING_ROWS[setSel];
-            if (lr && sr !== 'done' && !repeat) { if (rtl) lr = -lr; changeSetting(sr, lr); sfx('move'); say(settingValue(sr)); }
+            if (sr === 'heart') { if ((lr && !repeat) || ok) { sfx('select'); openHeart(); } }
+            else if (lr && sr !== 'done' && !repeat) { if (rtl) lr = -lr; changeSetting(sr, lr); sfx('move'); say(settingValue(sr)); }
             if (ok && sr === 'done') { MyPC.save('settings', settings); screen = 'title'; sfx('select'); playTrack(settings.track >= 0 ? settings.track : LEVELS[clamp(progress.last, 0, NL - 1)].track); }
+        } else if (screen === 'heart') {
+            heartInput(ok, dir);
         } else if (screen === 'results') {
             var btns = resultButtons();
             if (lr) { resultSel = clamp(resultSel + lr, 0, btns.length - 1); sfx('move'); say(t[btns[resultSel]]); }
@@ -1688,6 +1839,13 @@
             progress.unlocked = clamp(progress.unlocked | 0, 1, NL);
             progress.last = clamp(progress.last | 0, 0, progress.unlocked - 1);
             needProfile = !MyPC.load('hasProfile', false);
+            MTHeart.init(onHeartChange);
+            setupSensors();
+            if (typeof MyPC.sensors !== 'undefined' && MyPC.sensors.on) {
+                MyPC.sensors.on('action', motionAction);
+                MyPC.sensors.on('players', phonePlayers);
+                phonePlayers(MyPC.sensors.players && MyPC.sensors.players());
+            }
             fxFull = settings.fx === 2 || (settings.fx === 0 && tier !== 'low');
             canvas = document.getElementById('c'); glCanvas = document.getElementById('gl');
             try { if (window.THREE && window.MTWorld3D && ac.renderer !== '2d') W3 = MTWorld3D.create(glCanvas, { tier: tier }); } catch (e) { W3 = null; }
@@ -1711,6 +1869,7 @@
             });
         },
         onStart: function () {
+            started = true; tryAutoHeart();
             initAudio();
             startLoop();
             welcomePending = true;
